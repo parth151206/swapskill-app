@@ -1,58 +1,67 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, MessageSquare, Calendar, Star, MoreVertical, Clock } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 
 const Matches = () => {
   const [activeTab, setActiveTab] = useState('active');
+  const { currentUser } = useAuth();
+  const [matches, setMatches] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const matches = [
-    {
-      id: 1,
-      name: 'David K.',
-      role: 'Senior Product Designer',
-      company: 'Figma',
-      avatar: 'https://i.pravatar.cc/150?img=33',
-      status: 'active',
-      topic: 'Advanced Prototyping vs React Patterns',
-      nextSession: 'Today, 2:00 PM',
-      hoursExchanged: 4,
-    },
-    {
-      id: 2,
-      name: 'Elena R.',
-      role: 'Staff Engineer',
-      company: 'Netflix',
-      avatar: 'https://i.pravatar.cc/150?img=44',
-      status: 'active',
-      topic: 'Performance Tuning vs System Design',
-      nextSession: 'Tomorrow, 10:00 AM',
-      hoursExchanged: 2.5,
-    },
-    {
-      id: 3,
-      name: 'Marcus J.',
-      role: 'Backend Developer',
-      company: 'Stripe',
-      avatar: 'https://i.pravatar.cc/150?img=55',
-      status: 'completed',
-      topic: 'Node.js Architecture vs CSS Grid',
-      nextSession: null,
-      hoursExchanged: 6,
-    },
-    {
-      id: 4,
-      name: 'Sophie W.',
-      role: 'Product Manager',
-      company: 'Atlassian',
-      avatar: 'https://i.pravatar.cc/150?img=22',
-      status: 'completed',
-      topic: 'Agile Workflows vs React Basics',
-      nextSession: null,
-      hoursExchanged: 3,
-    }
-  ];
+  useEffect(() => {
+    const fetchMatches = async () => {
+      if (!currentUser) return;
+      try {
+        const q = query(collection(db, 'chats'), where('participants', 'array-contains', currentUser.uid));
+        const snapshot = await getDocs(q);
+        
+        const fetchedMatches = [];
+        for (const chatDoc of snapshot.docs) {
+          const chatData = chatDoc.data();
+          const otherUserId = chatData.participants.find(id => id !== currentUser.uid);
+          
+          if (otherUserId) {
+            const userRef = doc(db, 'users', otherUserId);
+            const userSnap = await getDoc(userRef);
+            if (userSnap.exists()) {
+              const userData = userSnap.data();
+              fetchedMatches.push({
+                id: chatDoc.id,
+                uid: otherUserId,
+                name: userData.name || 'Unknown User',
+                role: userData.title || 'Member',
+                company: 'Member',
+                avatar: userData.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.name || 'U')}&background=0A0A0A&color=fff`,
+                status: 'active',
+                topic: chatData.topic || 'Skill Swap',
+                nextSession: 'TBD',
+                hoursExchanged: 0,
+              });
+            }
+          }
+        }
+        setMatches(fetchedMatches);
+      } catch (err) {
+        console.error("Error fetching matches:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchMatches();
+  }, [currentUser]);
 
   const filteredMatches = matches.filter(m => m.status === activeTab);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#FAFAFA] flex items-center justify-center">
+        <div className="text-[#737373] text-lg font-medium animate-pulse">Loading Matches...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] font-sans text-[#0A0A0A] pb-16">
@@ -117,7 +126,7 @@ const Matches = () => {
                     
                     {/* User Info */}
                     <div className="flex items-center gap-4 flex-1">
-                      <Link to="/profile">
+                      <Link to={`/profile?id=${match.uid}`}>
                         <img 
                           src={match.avatar} 
                           alt={match.name} 
@@ -125,7 +134,7 @@ const Matches = () => {
                         />
                       </Link>
                       <div>
-                        <Link to="/profile" className="text-base font-bold text-[#0A0A0A] hover:underline">
+                        <Link to={`/profile?id=${match.uid}`} className="text-base font-bold text-[#0A0A0A] hover:underline">
                           {match.name}
                         </Link>
                         <p className="text-sm text-[#737373]">{match.role} @ {match.company}</p>
