@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Star, MapPin, Briefcase, Clock, MessageSquare, Repeat, Shield, CheckCircle, Calendar, Award } from 'lucide-react';
 
 const Profile = () => {
