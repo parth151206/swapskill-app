@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { User, Lock, Bell, Shield, LogOut, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { db } from '../firebase';
+import { db, storage } from '../firebase';
 import { doc, updateDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState('profile');
@@ -17,7 +18,54 @@ const Settings = () => {
   });
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
+  
+  const fileInputRef = useRef(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
 
+  const handleFileSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      setUploadError('File must be smaller than 2MB');
+      return;
+    }
+
+    setUploading(true);
+    setUploadError('');
+
+    try {
+      const storageRef = ref(storage, `avatars/${currentUser.uid}_${Date.now()}`);
+      await uploadBytes(storageRef, file);
+      const downloadUrl = await getDownloadURL(storageRef);
+
+      const userRef = doc(db, 'users', currentUser.uid);
+      await updateDoc(userRef, { avatarUrl: downloadUrl });
+      
+    } catch (err) {
+      console.error("Error uploading avatar:", err);
+      setUploadError('Failed to upload image. Please try again.');
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    if (!currentUser?.avatarUrl) return;
+    setUploading(true);
+    setUploadError('');
+    try {
+      const userRef = doc(db, 'users', currentUser.uid);
+      await updateDoc(userRef, { avatarUrl: '' });
+    } catch (err) {
+      console.error("Error removing avatar:", err);
+      setUploadError('Failed to remove image.');
+    } finally {
+      setUploading(false);
+    }
+  };
   useEffect(() => {
     if (currentUser) {
       setFormData({
@@ -144,17 +192,37 @@ const Settings = () => {
                 <div>
                   <h3 className="text-lg font-bold text-[#0A0A0A] mb-4">Profile Picture</h3>
                   <div className="flex items-center gap-6">
-                    <img src={currentUser?.avatarUrl || "https://i.pravatar.cc/150?img=47"} alt="Current Avatar" className="w-20 h-20 rounded-full border border-[#E5E5E5] grayscale object-cover" />
+                    <img 
+                      src={currentUser?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.name || 'U')}&background=0A0A0A&color=fff&size=150`}
+                      alt="Current Avatar" 
+                      className="w-20 h-20 rounded-full border border-[#E5E5E5] object-cover" 
+                    />
                     <div>
                       <div className="flex gap-3 mb-2">
-                        <button className="px-4 py-2 bg-[#0A0A0A] text-white text-sm font-semibold rounded-lg hover:bg-[#262626] transition-colors">
-                          Change
+                        <input 
+                          type="file" 
+                          ref={fileInputRef} 
+                          onChange={handleFileSelect}
+                          accept="image/jpeg, image/png, image/gif"
+                          className="hidden" 
+                        />
+                        <button 
+                          onClick={() => fileInputRef.current.click()}
+                          disabled={uploading}
+                          className="px-4 py-2 bg-[#0A0A0A] text-white text-sm font-semibold rounded-lg hover:bg-[#262626] transition-colors disabled:opacity-50"
+                        >
+                          {uploading ? 'Uploading...' : 'Change'}
                         </button>
-                        <button className="px-4 py-2 bg-white border border-[#E5E5E5] text-[#0A0A0A] text-sm font-semibold rounded-lg hover:bg-[#FAFAFA] transition-colors">
+                        <button 
+                          onClick={handleRemoveAvatar}
+                          disabled={uploading || !currentUser?.avatarUrl}
+                          className="px-4 py-2 bg-white border border-[#E5E5E5] text-[#0A0A0A] text-sm font-semibold rounded-lg hover:bg-[#FAFAFA] transition-colors disabled:opacity-50"
+                        >
                           Remove
                         </button>
                       </div>
-                      <p className="text-xs text-[#737373]">JPG, GIF or PNG. Max size of 800K.</p>
+                      {uploadError && <p className="text-xs text-red-500 mb-1">{uploadError}</p>}
+                      <p className="text-xs text-[#737373]">JPG, GIF or PNG. Max size of 2MB.</p>
                     </div>
                   </div>
                 </div>
