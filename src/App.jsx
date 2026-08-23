@@ -3,20 +3,21 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Home from './pages/Home';
-
-// Placeholder Pages for Phase 1 testing until we build them
-const Explore = () => <div className="p-8 text-center min-h-[60vh]"><h1 className="text-3xl font-bold">Explore Skills</h1></div>;
-const HowItWorks = () => <div className="p-8 text-center min-h-[60vh]"><h1 className="text-3xl font-bold">How It Works</h1></div>;
-const About = () => <div className="p-8 text-center min-h-[60vh]"><h1 className="text-3xl font-bold">About Us</h1></div>;
-const Login = () => <div className="p-8 text-center min-h-[60vh]"><h1 className="text-3xl font-bold">Login</h1></div>;
-const Register = () => <div className="p-8 text-center min-h-[60vh]"><h1 className="text-3xl font-bold">Register</h1></div>;
+import Explore from './pages/Explore';
+import Profile from './pages/Profile';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import Dashboard from './pages/Dashboard';
+import Matches from './pages/Matches';
+import Requests from './pages/Requests';
+import HowItWorks from './pages/HowItWorks';
+import About from './pages/About';
+import Notifications from './pages/Notifications';
+import Messages from './pages/Messages';
+import Settings from './pages/Settings';
+import CreateRequest from './pages/CreateRequest';
 
 // Authenticated Mock Routes
-const Dashboard = () => <div className="p-8 text-center min-h-[60vh]"><h1 className="text-3xl font-bold">Dashboard</h1></div>;
-const Matches = () => <div className="p-8 text-center min-h-[60vh]"><h1 className="text-3xl font-bold">My Matches</h1></div>;
-const Requests = () => <div className="p-8 text-center min-h-[60vh]"><h1 className="text-3xl font-bold">Requests</h1></div>;
-const Profile = () => <div className="p-8 text-center min-h-[60vh]"><h1 className="text-3xl font-bold">Profile</h1></div>;
-const Notifications = () => <div className="p-8 text-center min-h-[60vh]"><h1 className="text-3xl font-bold">Notifications</h1></div>;
 
 const NotFound = () => <div className="p-8 text-center min-h-[60vh]"><h1 className="text-3xl font-bold">404 - Skill Not Found</h1></div>;
 
@@ -41,6 +42,9 @@ function App() {
             <Route path="/requests" element={<Requests />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/notifications" element={<Notifications />} />
+            <Route path="/messages" element={<Messages />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/create-request" element={<CreateRequest />} />
             
             <Route path="*" element={<NotFound />} />
           </Routes>

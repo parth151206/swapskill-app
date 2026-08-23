@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Bell } from 'lucide-react';
+import { Menu, X, Bell, Infinity as InfinityIcon } from 'lucide-react';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -13,15 +13,16 @@ const Navbar = () => {
 
   const navLinks = isLoggedIn
     ? [
-        { name: 'Home', path: '/' },
-        { name: 'Explore', path: '/explore' },
+        { name: 'Discover', path: '/explore' },
         { name: 'Matches', path: '/matches' },
         { name: 'Requests', path: '/requests' },
+        { name: 'Messages', path: '/messages' },
         { name: 'Dashboard', path: '/dashboard' },
+        { name: 'Settings', path: '/settings' },
       ]
     : [
         { name: 'Home', path: '/' },
-        { name: 'Explore', path: '/explore' },
+        { name: 'Discover', path: '/explore' },
         { name: 'How It Works', path: '/how-it-works' },
         { name: 'About', path: '/about' },
       ];
@@ -29,23 +30,28 @@ const Navbar = () => {
   const isActive = (path) => location.pathname === path;
 
   return (
-    <nav className="bg-white shadow-sm sticky top-0 z-50">
+    <nav className="bg-white border-b border-[#E5E5E5] sticky top-0 z-50 font-sans shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
-            <Link to="/" className="text-2xl font-bold text-primary-600 tracking-tight flex items-center gap-2">
-              <span className="bg-primary-600 text-white p-1 rounded-lg">⇄</span>
-              SwapSkill
+            {/* Logo area */}
+            <Link to="/" className="text-xl font-bold tracking-tight flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-[#0A0A0A] flex items-center justify-center shadow-sm">
+                <InfinityIcon className="w-5 h-5 text-[#10B981]" />
+              </div>
+              <span className="text-[#0A0A0A]">SwapSkill</span>
             </Link>
-            <div className="hidden lg:ml-8 lg:flex lg:space-x-8">
+            
+            {/* Nav Links */}
+            <div className="hidden lg:ml-12 lg:flex lg:space-x-8">
               {navLinks.map((link) => (
                 <Link
                   key={link.name}
                   to={link.path}
-                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors ${
+                  className={`inline-flex items-center text-sm font-semibold transition-colors ${
                     isActive(link.path)
-                      ? 'border-primary-600 text-gray-900'
-                      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                      ? 'text-[#10B981]'
+                      : 'text-[#737373] hover:text-[#0A0A0A]'
                   }`}
                 >
                   {link.name}
@@ -54,30 +60,22 @@ const Navbar = () => {
             </div>
           </div>
           
-          <div className="hidden lg:flex lg:items-center lg:space-x-4">
-            {/* Temp Toggle for Phase 1 Testing */}
-            <div className="mr-4 text-xs">
-              <button onClick={() => setIsLoggedIn(!isLoggedIn)} className="bg-gray-100 px-3 py-1.5 rounded-full hover:bg-gray-200 transition-colors border border-gray-200 text-gray-600">
-                Mock: {isLoggedIn ? 'Log Out' : 'Log In'}
-              </button>
-            </div>
-
+          <div className="hidden lg:flex lg:items-center lg:space-x-6">
             {isLoggedIn ? (
-              <div className="flex items-center space-x-5">
-                <Link to="/notifications" className="text-gray-400 hover:text-primary-600 relative p-1 rounded-full focus:outline-none transition-colors">
+              <div className="flex items-center space-x-4">
+                <Link to="/notifications" className="text-[#737373] hover:text-[#0A0A0A] relative transition-colors">
                   <span className="sr-only">View notifications</span>
-                  <Bell className="h-6 w-6" aria-hidden="true" />
-                  <span className="absolute top-0 right-1 block h-2.5 w-2.5 rounded-full bg-red-500 border-2 border-white" />
+                  <Bell className="h-5 w-5" aria-hidden="true" />
+                  <span className="absolute -top-1 -right-1 block h-2 w-2 rounded-full bg-[#10B981]" />
                 </Link>
                 
-                <div className="flex items-center space-x-3 border-l pl-5 border-gray-200">
-                  <Link to="/profile" className="flex items-center space-x-2 focus:outline-none group">
+                <div className="flex items-center pl-2">
+                  <Link to="/profile" className="flex items-center space-x-2 focus:outline-none transition-colors">
                     <img
-                      className="h-9 w-9 rounded-full object-cover border-2 border-transparent group-hover:border-primary-500 transition-all"
+                      className="h-8 w-8 rounded-full border-2 border-white shadow-sm object-cover grayscale"
                       src="https://i.pravatar.cc/150?img=33"
                       alt="User Avatar"
                     />
-                    <span className="text-sm font-medium text-gray-700 group-hover:text-primary-600 transition-colors">Alex Doe</span>
                   </Link>
                 </div>
               </div>
@@ -85,13 +83,13 @@ const Navbar = () => {
               <div className="flex items-center space-x-4">
                 <Link
                   to="/login"
-                  className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                  className="text-[#737373] font-semibold hover:text-[#0A0A0A] text-sm transition-colors"
                 >
-                  Login
+                  Sign In
                 </Link>
                 <Link
                   to="/register"
-                  className="bg-primary-600 text-white hover:bg-primary-700 px-5 py-2.5 rounded-lg text-sm font-medium shadow-sm hover:shadow transition-all"
+                  className="bg-[#0A0A0A] text-white hover:bg-[#262626] hover:shadow-md px-5 py-2 rounded-lg text-sm font-semibold transition-all"
                 >
                   Sign Up
                 </Link>
