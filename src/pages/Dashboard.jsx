@@ -1,24 +1,20 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Repeat, Clock, Star, Bell, ArrowRight, Calendar, MessageSquare, CheckCircle, MoreHorizontal } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 const Dashboard = () => {
-  // Mock Data
+  const { currentUser } = useAuth();
+  
+  // Real stats will be fetched once the Requests backend is built
   const stats = [
-    { label: 'Active Swaps', value: '3', trend: '+1 this week', icon: Repeat },
-    { label: 'Hours Exchanged', value: '12.5', trend: 'Top 15%', icon: Clock },
-    { label: 'Avg Rating', value: '4.9', trend: 'Based on 28 reviews', icon: Star },
+    { label: 'Active Swaps', value: '0', trend: 'No active swaps yet', icon: Repeat },
+    { label: 'Hours Exchanged', value: '0', trend: 'Start swapping to earn hours', icon: Clock },
+    { label: 'Avg Rating', value: '0.0', trend: 'No reviews yet', icon: Star },
   ];
 
-  const upcomingSessions = [
-    { id: 1, partner: 'David K.', topic: 'Advanced Figma Prototyping', time: 'Today, 2:00 PM', duration: '1 hr', avatar: 'https://i.pravatar.cc/150?img=33' },
-    { id: 2, partner: 'Elena R.', topic: 'React Performance Tuning', time: 'Tomorrow, 10:00 AM', duration: '45 min', avatar: 'https://i.pravatar.cc/150?img=44' },
-  ];
-
-  const pendingRequests = [
-    { id: 1, from: 'Marcus J.', role: 'Backend Dev @ Stripe', offering: 'Node.js Architecture', seeking: 'CSS Grid & Flexbox', timeAgo: '2 hrs ago', avatar: 'https://i.pravatar.cc/150?img=55' },
-    { id: 2, from: 'Sophie W.', role: 'Product Manager', offering: 'Agile Workflows', seeking: 'React Basics', timeAgo: '5 hrs ago', avatar: 'https://i.pravatar.cc/150?img=22' },
-  ];
+  const upcomingSessions = [];
+  const pendingRequests = [];
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] font-sans text-[#0A0A0A] pb-16">
@@ -27,7 +23,7 @@ const Dashboard = () => {
       <div className="bg-white border-b border-[#E5E5E5] px-4 py-8 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#0A0A0A]">Welcome back, Sarah.</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#0A0A0A]">Welcome back, {currentUser?.name ? currentUser.name.split(' ')[0] : 'User'}.</h1>
             <p className="mt-1 text-sm text-[#737373]">Here's what's happening in your network today.</p>
           </div>
           <div className="flex gap-3">
@@ -76,33 +72,39 @@ const Dashboard = () => {
                 <button className="text-sm font-semibold text-[#737373] hover:text-[#0A0A0A] transition-colors">View Calendar</button>
               </div>
               <div className="divide-y divide-[#E5E5E5]">
-                {upcomingSessions.map(session => (
-                  <div key={session.id} className="p-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center hover:bg-[#FAFAFA] transition-colors">
-                    <div className="relative shrink-0">
-                      <img src={session.avatar} alt={session.partner} className="w-12 h-12 rounded-full border border-[#E5E5E5] grayscale" />
-                      <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-sm">
-                        <CheckCircle className="w-4 h-4 text-[#10B981] fill-[#10B981]/10" />
-                      </div>
-                    </div>
-                    
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-sm font-bold text-[#0A0A0A] truncate">{session.topic}</h4>
-                      <p className="text-sm text-[#737373] truncate">Swap with <span className="font-medium text-[#0A0A0A]">{session.partner}</span></p>
-                    </div>
-
-                    <div className="flex items-center gap-4 shrink-0 w-full sm:w-auto mt-2 sm:mt-0 justify-between sm:justify-end">
-                      <div className="text-right">
-                        <div className="flex items-center text-sm font-bold text-[#0A0A0A]">
-                          <Calendar className="w-4 h-4 mr-1.5 text-[#737373]" /> {session.time}
-                        </div>
-                        <div className="text-xs text-[#737373] font-medium mt-0.5">{session.duration}</div>
-                      </div>
-                      <button className="p-2 text-[#737373] hover:text-[#0A0A0A] hover:bg-[#E5E5E5] rounded-lg transition-colors border border-[#E5E5E5] sm:border-transparent">
-                        <MoreHorizontal className="w-5 h-5" />
-                      </button>
-                    </div>
+                {upcomingSessions.length === 0 ? (
+                  <div className="p-8 text-center text-[#737373] text-sm">
+                    You have no upcoming sessions scheduled.
                   </div>
-                ))}
+                ) : (
+                  upcomingSessions.map(session => (
+                    <div key={session.id} className="p-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center hover:bg-[#FAFAFA] transition-colors">
+                      <div className="relative shrink-0">
+                        <img src={session.avatar} alt={session.partner} className="w-12 h-12 rounded-full border border-[#E5E5E5] grayscale" />
+                        <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-sm">
+                          <CheckCircle className="w-4 h-4 text-[#10B981] fill-[#10B981]/10" />
+                        </div>
+                      </div>
+                      
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-sm font-bold text-[#0A0A0A] truncate">{session.topic}</h4>
+                        <p className="text-sm text-[#737373] truncate">Swap with <span className="font-medium text-[#0A0A0A]">{session.partner}</span></p>
+                      </div>
+
+                      <div className="flex items-center gap-4 shrink-0 w-full sm:w-auto mt-2 sm:mt-0 justify-between sm:justify-end">
+                        <div className="text-right">
+                          <div className="flex items-center text-sm font-bold text-[#0A0A0A]">
+                            <Calendar className="w-4 h-4 mr-1.5 text-[#737373]" /> {session.time}
+                          </div>
+                          <div className="text-xs text-[#737373] font-medium mt-0.5">{session.duration}</div>
+                        </div>
+                        <button className="p-2 text-[#737373] hover:text-[#0A0A0A] hover:bg-[#E5E5E5] rounded-lg transition-colors border border-[#E5E5E5] sm:border-transparent">
+                          <MoreHorizontal className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
 
@@ -116,42 +118,48 @@ const Dashboard = () => {
                 <Link to="/requests" className="text-sm font-semibold text-[#737373] hover:text-[#0A0A0A] transition-colors">View All</Link>
               </div>
               <div className="divide-y divide-[#E5E5E5]">
-                {pendingRequests.map(request => (
-                  <div key={request.id} className="p-6">
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="flex gap-3">
-                        <img src={request.avatar} alt={request.from} className="w-10 h-10 rounded-full border border-[#E5E5E5] grayscale" />
-                        <div>
-                          <div className="text-sm font-bold text-[#0A0A0A]">{request.from}</div>
-                          <div className="text-xs text-[#737373]">{request.role}</div>
-                        </div>
-                      </div>
-                      <span className="text-xs font-medium text-[#737373]">{request.timeAgo}</span>
-                    </div>
-                    
-                    <div className="bg-[#FAFAFA] rounded-lg p-4 border border-[#E5E5E5] mb-4 text-sm">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <span className="block text-xs font-bold text-[#737373] uppercase tracking-wide mb-1">They can teach</span>
-                          <span className="font-medium text-[#0A0A0A]">{request.offering}</span>
-                        </div>
-                        <div>
-                          <span className="block text-xs font-bold text-[#737373] uppercase tracking-wide mb-1">They want to learn</span>
-                          <span className="font-medium text-[#0A0A0A]">{request.seeking}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-3">
-                      <button className="flex-1 inline-flex justify-center items-center px-4 py-2 bg-[#0A0A0A] text-white rounded-lg text-sm font-semibold hover:bg-[#262626] transition-colors">
-                        Accept Swap
-                      </button>
-                      <button className="flex-1 inline-flex justify-center items-center px-4 py-2 bg-white border border-[#E5E5E5] text-[#0A0A0A] rounded-lg text-sm font-semibold hover:bg-[#FAFAFA] transition-colors">
-                        Decline
-                      </button>
-                    </div>
+                {pendingRequests.length === 0 ? (
+                  <div className="p-8 text-center text-[#737373] text-sm">
+                    You have no pending requests right now.
                   </div>
-                ))}
+                ) : (
+                  pendingRequests.map(request => (
+                    <div key={request.id} className="p-6">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex gap-3">
+                          <img src={request.avatar} alt={request.from} className="w-10 h-10 rounded-full border border-[#E5E5E5] grayscale" />
+                          <div>
+                            <div className="text-sm font-bold text-[#0A0A0A]">{request.from}</div>
+                            <div className="text-xs text-[#737373]">{request.role}</div>
+                          </div>
+                        </div>
+                        <span className="text-xs font-medium text-[#737373]">{request.timeAgo}</span>
+                      </div>
+                      
+                      <div className="bg-[#FAFAFA] rounded-lg p-4 border border-[#E5E5E5] mb-4 text-sm">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <span className="block text-xs font-bold text-[#737373] uppercase tracking-wide mb-1">They can teach</span>
+                            <span className="font-medium text-[#0A0A0A]">{request.offering}</span>
+                          </div>
+                          <div>
+                            <span className="block text-xs font-bold text-[#737373] uppercase tracking-wide mb-1">They want to learn</span>
+                            <span className="font-medium text-[#0A0A0A]">{request.seeking}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-3">
+                        <button className="flex-1 inline-flex justify-center items-center px-4 py-2 bg-[#0A0A0A] text-white rounded-lg text-sm font-semibold hover:bg-[#262626] transition-colors">
+                          Accept Swap
+                        </button>
+                        <button className="flex-1 inline-flex justify-center items-center px-4 py-2 bg-white border border-[#E5E5E5] text-[#0A0A0A] rounded-lg text-sm font-semibold hover:bg-[#FAFAFA] transition-colors">
+                          Decline
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
 

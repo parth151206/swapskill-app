@@ -1,80 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Filter, Star, MapPin, Briefcase, Clock, X, CheckCircle, ArrowRight } from 'lucide-react';
-
-// Mock Data
-const MOCK_USERS = [
-  {
-    id: 'u1',
-    name: 'Sarah Chen',
-    avatar: 'https://i.pravatar.cc/150?img=1',
-    bio: 'Frontend developer passionate about building accessible web apps.',
-    location: 'San Francisco, CA',
-    experience: 'Intermediate',
-    availability: 'Evenings',
-    teaches: ['React', 'JavaScript', 'Tailwind CSS'],
-    wants: ['UI/UX Design', 'Figma'],
-    rating: 4.8,
-    reviews: 24,
-    compatibility: 95,
-  },
-  {
-    id: 'u2',
-    name: 'David Kumar',
-    avatar: 'https://i.pravatar.cc/150?img=12',
-    bio: 'Product designer looking to level up my coding skills.',
-    location: 'Remote',
-    experience: 'Expert',
-    availability: 'Weekends',
-    teaches: ['Figma', 'UI/UX Design', 'Graphic Design'],
-    wants: ['React', 'Next.js'],
-    rating: 4.9,
-    reviews: 41,
-    compatibility: 88,
-  },
-  {
-    id: 'u3',
-    name: 'Elena Rodriguez',
-    avatar: 'https://i.pravatar.cc/150?img=5',
-    bio: 'Data scientist who loves teaching Python and stats.',
-    location: 'New York, NY',
-    experience: 'Expert',
-    availability: 'Flexible',
-    teaches: ['Python', 'Data Analysis', 'Machine Learning'],
-    wants: ['Spanish', 'Public Speaking'],
-    rating: 4.7,
-    reviews: 18,
-    compatibility: 45,
-  },
-  {
-    id: 'u4',
-    name: 'Marcus Johnson',
-    avatar: 'https://i.pravatar.cc/150?img=33',
-    bio: 'Native Spanish speaker looking to learn Python for my new job.',
-    location: 'Chicago, IL',
-    experience: 'Beginner',
-    availability: 'Evenings',
-    teaches: ['Spanish', 'Guitar'],
-    wants: ['Python', 'SQL'],
-    rating: 4.5,
-    reviews: 12,
-    compatibility: 60,
-  },
-  {
-    id: 'u5',
-    name: 'Jessica Lee',
-    avatar: 'https://i.pravatar.cc/150?img=9',
-    bio: 'Digital marketer who wants to learn frontend development.',
-    location: 'Austin, TX',
-    experience: 'Intermediate',
-    availability: 'Weekends',
-    teaches: ['Digital Marketing', 'SEO', 'Content Strategy'],
-    wants: ['HTML', 'CSS', 'JavaScript'],
-    rating: 4.6,
-    reviews: 29,
-    compatibility: 75,
-  },
-];
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '../firebase';
+import { useAuth } from '../contexts/AuthContext';
 
 const Explore = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -82,24 +11,44 @@ const Explore = () => {
   const [selectedAvailability, setSelectedAvailability] = useState('All');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [users, setUsers] = useState([]);
   
-  // Simulate network request
+  const { currentUser } = useAuth();
+
+  // Fetch real users from Firestore
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 600);
-    return () => clearTimeout(timer);
-  }, []);
+    const fetchUsers = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, 'users'));
+        const usersList = querySnapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() }))
+          // Don't show the currently logged in user to themselves
+          .filter(u => u.id !== currentUser?.uid);
+        setUsers(usersList);
+      } catch (error) {
+        console.error("Error fetching users:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchUsers();
+  }, [currentUser]);
 
   // Filtering Logic
-  const filteredUsers = MOCK_USERS.filter((user) => {
+  const filteredUsers = users.filter((user) => {
+    const safeName = user.name || '';
+    const safeTeaches = user.canTeach || [];
+    const safeWants = user.wantToLearn || [];
+
     const matchesSearch = 
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.teaches.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      user.wants.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase()));
+      safeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      safeTeaches.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      safeWants.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase()));
       
-    const matchesExperience = selectedExperience === 'All' || user.experience === selectedExperience;
-    const matchesAvailability = selectedAvailability === 'All' || user.availability === selectedAvailability;
+    // Simplified filters for now, assuming all experience/availability matches since we didn't add those to profile yet
+    const matchesExperience = selectedExperience === 'All' || true;
+    const matchesAvailability = selectedAvailability === 'All' || true;
     
     return matchesSearch && matchesExperience && matchesAvailability;
   });
@@ -276,7 +225,7 @@ const Explore = () => {
                       {/* Profile Info */}
                       <div className="flex items-start gap-5">
                         <div className="relative">
-                          <img src={user.avatar} alt={user.name} className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border border-[#E5E5E5] grayscale group-hover:grayscale-0 transition-all duration-500" />
+                          <img src={user.avatarUrl || "https://i.pravatar.cc/150?img=47"} alt={user.name} className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border border-[#E5E5E5] grayscale group-hover:grayscale-0 transition-all duration-500" />
                           <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5">
                             <CheckCircle className="w-5 h-5 text-[#10B981]" />
                           </div>
@@ -285,32 +234,25 @@ const Explore = () => {
                         <div>
                           <div className="flex items-center gap-3 mb-1">
                             <h2 className="text-xl font-bold text-[#0A0A0A]">{user.name}</h2>
-                            {/* Compatibility Badge */}
-                            <span className={`px-2.5 py-0.5 text-xs font-bold rounded-md border ${
-                              user.compatibility > 80 ? 'bg-[#10B981]/10 text-[#10B981] border-[#10B981]/20' : 
-                              user.compatibility > 50 ? 'bg-[#FAFAFA] text-[#737373] border-[#E5E5E5]' : 'bg-[#FAFAFA] text-[#737373] border-[#E5E5E5]'
-                            }`}>
-                              {user.compatibility}% Match
+                            {/* Compatibility Badge - Hardcoded for Phase 1 */}
+                            <span className="px-2.5 py-0.5 text-xs font-bold rounded-md border bg-[#FAFAFA] text-[#737373] border-[#E5E5E5]">
+                              New Member
                             </span>
                           </div>
                           
-                          <p className="text-sm text-[#737373] mb-4 max-w-xl leading-relaxed">{user.bio}</p>
+                          <p className="text-sm text-[#737373] mb-4 max-w-xl leading-relaxed">{user.bio || "This user hasn't added a bio yet."}</p>
                           
                           <div className="flex flex-wrap items-center gap-4 text-xs font-medium text-[#737373]">
-                            <span className="flex items-center gap-1.5"><Star className="w-4 h-4 text-[#0A0A0A] fill-current" /> <span className="text-[#0A0A0A]">{user.rating}</span> ({user.reviews})</span>
-                            <span className="hidden sm:inline text-[#E5E5E5]">|</span>
-                            <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4" /> {user.location}</span>
-                            <span className="hidden sm:inline text-[#E5E5E5]">|</span>
-                            <span className="flex items-center gap-1.5"><Briefcase className="w-4 h-4" /> {user.experience}</span>
+                            <span className="flex items-center gap-1.5"><Briefcase className="w-4 h-4" /> {user.title || "Professional"}</span>
                           </div>
                         </div>
                       </div>
 
                       {/* Action Buttons */}
                       <div className="flex flex-col gap-2 min-w-[150px] shrink-0">
-                        <button className="w-full inline-flex justify-center items-center px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#0A0A0A] hover:bg-[#262626] transition-colors">
+                        <Link to={`/create-request?target=${user.id}`} className="w-full inline-flex justify-center items-center px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#0A0A0A] hover:bg-[#262626] transition-colors">
                           Request Swap
-                        </button>
+                        </Link>
                         <Link to="/profile" className="w-full inline-flex justify-center items-center px-4 py-2.5 border border-[#E5E5E5] rounded-lg text-sm font-semibold text-[#0A0A0A] bg-white hover:bg-[#FAFAFA] transition-colors group/btn">
                           View Profile <ArrowRight className="ml-1.5 w-3.5 h-3.5 text-[#737373] group-hover/btn:translate-x-0.5 transition-transform" />
                         </Link>
@@ -325,11 +267,14 @@ const Explore = () => {
                           <p className="text-xs font-bold text-[#0A0A0A] uppercase tracking-wide">Expertise to Share</p>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                          {user.teaches.map(skill => (
-                            <span key={skill} className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-[#FAFAFA] text-[#0A0A0A] border border-[#E5E5E5]">
+                          {(user.canTeach || []).map((skill, idx) => (
+                            <span key={idx} className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-[#FAFAFA] text-[#0A0A0A] border border-[#E5E5E5]">
                               {skill}
                             </span>
                           ))}
+                          {(!user.canTeach || user.canTeach.length === 0) && (
+                            <span className="text-xs text-[#737373] italic">No skills listed</span>
+                          )}
                         </div>
                       </div>
                       <div>
@@ -338,11 +283,14 @@ const Explore = () => {
                           <p className="text-xs font-bold text-[#737373] uppercase tracking-wide">Seeking to Learn</p>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                          {user.wants.map(skill => (
-                            <span key={skill} className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-white text-[#737373] border border-[#E5E5E5] border-dashed">
+                          {(user.wantToLearn || []).map((skill, idx) => (
+                            <span key={idx} className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-white text-[#737373] border border-[#E5E5E5] border-dashed">
                               {skill}
                             </span>
                           ))}
+                          {(!user.wantToLearn || user.wantToLearn.length === 0) && (
+                            <span className="text-xs text-[#737373] italic">No skills listed</span>
+                          )}
                         </div>
                       </div>
                     </div>
