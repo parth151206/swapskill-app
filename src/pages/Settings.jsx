@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { User, Lock, Bell, Shield, LogOut, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { db, storage } from '../firebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, setDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const Settings = () => {
@@ -41,7 +41,7 @@ const Settings = () => {
       const downloadUrl = await getDownloadURL(storageRef);
 
       const userRef = doc(db, 'users', currentUser.uid);
-      await updateDoc(userRef, { avatarUrl: downloadUrl });
+      await setDoc(userRef, { avatarUrl: downloadUrl }, { merge: true });
       
     } catch (err) {
       console.error("Error uploading avatar:", err);
@@ -58,7 +58,7 @@ const Settings = () => {
     setUploadError('');
     try {
       const userRef = doc(db, 'users', currentUser.uid);
-      await updateDoc(userRef, { avatarUrl: '' });
+      await setDoc(userRef, { avatarUrl: '' }, { merge: true });
     } catch (err) {
       console.error("Error removing avatar:", err);
       setUploadError('Failed to remove image.');
@@ -89,13 +89,13 @@ const Settings = () => {
     
     try {
       const userRef = doc(db, 'users', currentUser.uid);
-      await updateDoc(userRef, {
+      await setDoc(userRef, {
         name: formData.name,
         title: formData.title,
         bio: formData.bio,
         canTeach: formData.canTeach.split(',').map(s => s.trim()).filter(Boolean),
         wantToLearn: formData.wantToLearn.split(',').map(s => s.trim()).filter(Boolean),
-      });
+      }, { merge: true });
       setSaveMessage('Profile saved successfully!');
       setTimeout(() => setSaveMessage(''), 3000);
     } catch (error) {
