@@ -1,8 +1,62 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, Lock, Bell, Shield, LogOut, CheckCircle2 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { db } from '../firebase';
+import { doc, updateDoc } from 'firebase/firestore';
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState('profile');
+  const { currentUser, logout } = useAuth();
+  
+  const [formData, setFormData] = useState({
+    name: '',
+    title: '',
+    bio: '',
+    canTeach: '',
+    wantToLearn: ''
+  });
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState('');
+
+  useEffect(() => {
+    if (currentUser) {
+      setFormData({
+        name: currentUser.name || '',
+        title: currentUser.title || '',
+        bio: currentUser.bio || '',
+        canTeach: currentUser.canTeach ? currentUser.canTeach.join(', ') : '',
+        wantToLearn: currentUser.wantToLearn ? currentUser.wantToLearn.join(', ') : ''
+      });
+    }
+  }, [currentUser]);
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSave = async () => {
+    if (!currentUser) return;
+    setIsSaving(true);
+    setSaveMessage('');
+    
+    try {
+      const userRef = doc(db, 'users', currentUser.uid);
+      await updateDoc(userRef, {
+        name: formData.name,
+        title: formData.title,
+        bio: formData.bio,
+        canTeach: formData.canTeach.split(',').map(s => s.trim()).filter(Boolean),
+        wantToLearn: formData.wantToLearn.split(',').map(s => s.trim()).filter(Boolean),
+      });
+      setSaveMessage('Profile saved successfully!');
+      setTimeout(() => setSaveMessage(''), 3000);
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      setSaveMessage('Failed to save profile.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] font-sans text-[#0A0A0A] pb-16">
@@ -14,9 +68,16 @@ const Settings = () => {
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#0A0A0A]">Settings</h1>
             <p className="mt-1 text-sm text-[#737373]">Manage your account preferences and profile details.</p>
           </div>
-          <button className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#0A0A0A] hover:bg-[#262626] transition-colors shadow-sm">
-            Save Changes
-          </button>
+          <div className="flex items-center gap-4">
+            {saveMessage && <span className="text-sm font-semibold text-[#10B981]">{saveMessage}</span>}
+            <button 
+              onClick={handleSave}
+              disabled={isSaving}
+              className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#0A0A0A] hover:bg-[#262626] transition-colors shadow-sm disabled:opacity-50"
+            >
+              {isSaving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -67,7 +128,7 @@ const Settings = () => {
             </button>
             
             <div className="pt-6 mt-6 border-t border-[#E5E5E5]">
-              <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold text-red-600 hover:bg-red-50 transition-colors">
+              <button onClick={logout} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold text-red-600 hover:bg-red-50 transition-colors">
                 <LogOut className="w-4 h-4" /> Sign Out
               </button>
             </div>
@@ -83,7 +144,7 @@ const Settings = () => {
                 <div>
                   <h3 className="text-lg font-bold text-[#0A0A0A] mb-4">Profile Picture</h3>
                   <div className="flex items-center gap-6">
-                    <img src="https://i.pravatar.cc/150?img=47" alt="Current Avatar" className="w-20 h-20 rounded-full border border-[#E5E5E5] grayscale" />
+                    <img src={currentUser?.avatarUrl || "https://i.pravatar.cc/150?img=47"} alt="Current Avatar" className="w-20 h-20 rounded-full border border-[#E5E5E5] grayscale object-cover" />
                     <div>
                       <div className="flex gap-3 mb-2">
                         <button className="px-4 py-2 bg-[#0A0A0A] text-white text-sm font-semibold rounded-lg hover:bg-[#262626] transition-colors">
@@ -107,17 +168,17 @@ const Settings = () => {
                   <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                     <div>
                       <label className="block text-sm font-bold text-[#0A0A0A] mb-2">Full Name</label>
-                      <input type="text" defaultValue="Sarah Jenkins" className="block w-full py-2.5 px-3 border border-[#E5E5E5] rounded-lg text-[#0A0A0A] bg-[#FAFAFA] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#0A0A0A] focus:border-[#0A0A0A] sm:text-sm transition-colors" />
+                      <input type="text" name="name" value={formData.name} onChange={handleChange} className="block w-full py-2.5 px-3 border border-[#E5E5E5] rounded-lg text-[#0A0A0A] bg-[#FAFAFA] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#0A0A0A] focus:border-[#0A0A0A] sm:text-sm transition-colors" />
                     </div>
                     <div>
                       <label className="block text-sm font-bold text-[#0A0A0A] mb-2">Professional Title</label>
-                      <input type="text" defaultValue="Senior Frontend Engineer" className="block w-full py-2.5 px-3 border border-[#E5E5E5] rounded-lg text-[#0A0A0A] bg-[#FAFAFA] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#0A0A0A] focus:border-[#0A0A0A] sm:text-sm transition-colors" />
+                      <input type="text" name="title" value={formData.title} onChange={handleChange} className="block w-full py-2.5 px-3 border border-[#E5E5E5] rounded-lg text-[#0A0A0A] bg-[#FAFAFA] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#0A0A0A] focus:border-[#0A0A0A] sm:text-sm transition-colors" />
                     </div>
                   </div>
 
                   <div>
                     <label className="block text-sm font-bold text-[#0A0A0A] mb-2">Bio</label>
-                    <textarea rows="4" defaultValue="Frontend specialist with 8 years of experience building scaleable web applications. Currently focused on React architecture, state management, and web performance optimization." className="block w-full py-2.5 px-3 border border-[#E5E5E5] rounded-lg text-[#0A0A0A] bg-[#FAFAFA] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#0A0A0A] focus:border-[#0A0A0A] sm:text-sm transition-colors resize-none"></textarea>
+                    <textarea rows="4" name="bio" value={formData.bio} onChange={handleChange} className="block w-full py-2.5 px-3 border border-[#E5E5E5] rounded-lg text-[#0A0A0A] bg-[#FAFAFA] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#0A0A0A] focus:border-[#0A0A0A] sm:text-sm transition-colors resize-none"></textarea>
                     <p className="mt-2 text-xs text-[#737373]">Brief description for your profile. URLs are hyperlinked.</p>
                   </div>
                 </div>
@@ -130,12 +191,12 @@ const Settings = () => {
                   
                   <div>
                     <label className="block text-sm font-bold text-[#0A0A0A] mb-2">I Can Teach (Comma separated)</label>
-                    <input type="text" defaultValue="React, Advanced CSS, Frontend Architecture, Next.js" className="block w-full py-2.5 px-3 border border-[#E5E5E5] rounded-lg text-[#0A0A0A] bg-[#FAFAFA] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#0A0A0A] focus:border-[#0A0A0A] sm:text-sm transition-colors" />
+                    <input type="text" name="canTeach" value={formData.canTeach} onChange={handleChange} className="block w-full py-2.5 px-3 border border-[#E5E5E5] rounded-lg text-[#0A0A0A] bg-[#FAFAFA] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#0A0A0A] focus:border-[#0A0A0A] sm:text-sm transition-colors" />
                   </div>
                   
                   <div>
                     <label className="block text-sm font-bold text-[#0A0A0A] mb-2">I Want To Learn (Comma separated)</label>
-                    <input type="text" defaultValue="Node.js, AWS Infrastructure, System Design, Figma" className="block w-full py-2.5 px-3 border border-[#E5E5E5] rounded-lg text-[#0A0A0A] bg-[#FAFAFA] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#0A0A0A] focus:border-[#0A0A0A] sm:text-sm transition-colors" />
+                    <input type="text" name="wantToLearn" value={formData.wantToLearn} onChange={handleChange} className="block w-full py-2.5 px-3 border border-[#E5E5E5] rounded-lg text-[#0A0A0A] bg-[#FAFAFA] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#0A0A0A] focus:border-[#0A0A0A] sm:text-sm transition-colors" />
                   </div>
                 </div>
               </div>
@@ -148,12 +209,8 @@ const Settings = () => {
                   
                   <div>
                     <label className="block text-sm font-bold text-[#0A0A0A] mb-2">Email Address</label>
-                    <div className="flex gap-4">
-                      <input type="email" defaultValue="sarah.jenkins@example.com" disabled className="block w-full py-2.5 px-3 border border-[#E5E5E5] rounded-lg text-[#737373] bg-[#F5F5F5] sm:text-sm cursor-not-allowed" />
-                    </div>
-                    <p className="mt-2 text-xs text-[#737373] flex items-center gap-1.5">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-[#10B981]" /> Verified corporate email
-                    </p>
+                    <input type="email" disabled value={currentUser?.email || ''} className="block w-full py-2.5 px-3 border border-[#E5E5E5] rounded-lg text-[#737373] bg-[#E5E5E5]/30 sm:text-sm cursor-not-allowed" />
+                    <p className="mt-2 text-xs text-[#737373]">Your email address is verified and cannot be changed.</p>
                   </div>
                   
                   <div className="pt-4">

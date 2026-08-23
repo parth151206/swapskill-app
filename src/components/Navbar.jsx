@@ -1,15 +1,26 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Bell, Infinity as InfinityIcon } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Menu, X, Bell, Infinity as InfinityIcon, LogOut } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
-
-  // Mock authentication state for Phase 1
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const navigate = useNavigate();
+  
+  const { currentUser, logout } = useAuth();
+  const isLoggedIn = !!currentUser;
 
   const toggleMenu = () => setIsOpen(!isOpen);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/');
+    } catch (error) {
+      console.error("Failed to log out", error);
+    }
+  };
 
   const navLinks = isLoggedIn
     ? [
@@ -69,7 +80,7 @@ const Navbar = () => {
                   <span className="absolute -top-1 -right-1 block h-2 w-2 rounded-full bg-[#10B981]" />
                 </Link>
                 
-                <div className="flex items-center pl-2">
+                <div className="flex items-center pl-2 space-x-4">
                   <Link to="/profile" className="flex items-center space-x-2 focus:outline-none transition-colors">
                     <img
                       className="h-8 w-8 rounded-full border-2 border-white shadow-sm object-cover grayscale"
@@ -77,6 +88,13 @@ const Navbar = () => {
                       alt="User Avatar"
                     />
                   </Link>
+                  <button 
+                    onClick={handleLogout}
+                    className="text-[#737373] hover:text-red-500 transition-colors"
+                    title="Sign Out"
+                  >
+                    <LogOut className="h-5 w-5" />
+                  </button>
                 </div>
               </div>
             ) : (
@@ -165,7 +183,10 @@ const Navbar = () => {
                     Your Profile
                   </Link>
                   <button
-                    onClick={() => setIsOpen(false)}
+                    onClick={() => {
+                      setIsOpen(false);
+                      handleLogout();
+                    }}
                     className="block w-full text-left px-3 py-2.5 rounded-md text-base font-medium text-red-600 hover:text-red-700 hover:bg-red-50"
                   >
                     Logout
