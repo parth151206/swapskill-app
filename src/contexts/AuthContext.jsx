@@ -6,7 +6,7 @@ import {
   onAuthStateChanged 
 } from 'firebase/auth';
 import { auth, db } from '../firebase';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, onSnapshot } from 'firebase/firestore';
 
 const AuthContext = createContext();
 
@@ -51,22 +51,34 @@ export const AuthProvider = ({ children }) => {
 
   // Track auth state changes
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    let userUnsub;
+    
+    const authUnsub = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        // Fetch custom user data from Firestore if needed
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        if (userDoc.exists()) {
-          setCurrentUser({ ...user, ...userDoc.data() });
-        } else {
+        // Listen to the user document in Firestore in real-time
+        userUnsub = onSnapshot(doc(db, 'users', user.uid), (userDoc) => {
+          if (userDoc.exists()) {
+            setCurrentUser({ ...user, ...userDoc.data() });
+          } else {
+            setCurrentUser(user);
+          }
+          setLoading(false);
+        }, (error) => {
+          console.error("Error listening to user data:", error);
           setCurrentUser(user);
-        }
+          setLoading(false);
+        });
       } else {
         setCurrentUser(null);
+        setLoading(false);
+        if (userUnsub) userUnsub();
       }
-      setLoading(false);
     });
 
-    return unsubscribe;
+    return () => {
+      authUnsub();
+      if (userUnsub) userUnsub();
+    };
   }, []);
 
   const value = {

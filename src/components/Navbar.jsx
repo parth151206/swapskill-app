@@ -84,7 +84,7 @@ const Navbar = () => {
                   <Link to="/profile" className="flex items-center space-x-2 focus:outline-none transition-colors">
                     <img
                       className="h-8 w-8 rounded-full border-2 border-white shadow-sm object-cover grayscale"
-                      src="https://i.pravatar.cc/150?img=33"
+                      src={currentUser?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.name || 'U')}&background=0A0A0A&color=fff`}
                       alt="User Avatar"
                     />
                   </Link>
@@ -161,13 +161,13 @@ const Navbar = () => {
                   <div className="flex-shrink-0">
                     <img
                       className="h-12 w-12 rounded-full object-cover border-2 border-primary-100"
-                      src="https://i.pravatar.cc/150?img=33"
+                      src={currentUser?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.name || 'U')}&background=0A0A0A&color=fff`}
                       alt="User Avatar"
                     />
                   </div>
                   <div className="ml-4">
-                    <div className="text-base font-medium text-gray-800">Alex Doe</div>
-                    <div className="text-sm font-medium text-gray-500">alex@swapskill.com</div>
+                    <div className="text-base font-medium text-gray-800">{currentUser?.name || 'User'}</div>
+                    <div className="text-sm font-medium text-gray-500">{currentUser?.email}</div>
                   </div>
                   <Link to="/notifications" onClick={() => setIsOpen(false)} className="ml-auto flex-shrink-0 bg-white p-2 rounded-full text-gray-400 hover:text-gray-500 relative">
                     <Bell className="h-6 w-6" aria-hidden="true" />
