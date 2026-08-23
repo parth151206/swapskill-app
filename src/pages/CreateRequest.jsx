@@ -1,25 +1,98 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Repeat, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { doc, getDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../firebase';
+import { useAuth } from '../contexts/AuthContext';
 
 const CreateRequest = () => {
+  const [searchParams] = useSearchParams();
+  const targetId = searchParams.get('target');
+  
+  const { currentUser } = useAuth();
+  
   const [step, setStep] = useState(1); // 1: Form, 2: Success
+  const [targetUser, setTargetUser] = useState(null);
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Mock data for the person we are requesting
-  const targetUser = {
-    name: 'Sarah Jenkins',
-    role: 'Senior Frontend Engineer @ Vercel',
-    avatar: 'https://i.pravatar.cc/150?img=47',
-    canTeach: ['React Performance', 'Next.js App Router', 'Framer Motion'],
-  };
+  // Form State
+  const [wantToLearn, setWantToLearn] = useState('');
+  const [willTeach, setWillTeach] = useState('');
+  const [pitch, setPitch] = useState('');
 
-  // Mock data for the logged-in user
-  const mySkills = ['Figma Prototyping', 'UI/UX Design', 'Design Systems'];
+  // Fetch target user data
+  useEffect(() => {
+    const fetchTargetUser = async () => {
+      if (!targetId) {
+        setIsLoadingUser(false);
+        return;
+      }
+      try {
+        const docRef = doc(db, 'users', targetId);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setTargetUser(data);
+          // Set defaults
+          if (data.canTeach && data.canTeach.length > 0) setWantToLearn(data.canTeach[0]);
+        }
+      } catch (error) {
+        console.error("Error fetching target user:", error);
+      } finally {
+        setIsLoadingUser(false);
+      }
+    };
+    fetchTargetUser();
+  }, [targetId]);
 
-  const handleSubmit = (e) => {
+  // Set default willTeach based on current user's profile
+  useEffect(() => {
+    if (currentUser?.canTeach && currentUser.canTeach.length > 0 && !willTeach) {
+      setWillTeach(currentUser.canTeach[0]);
+    }
+  }, [currentUser, willTeach]);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setStep(2);
+    if (!targetId || !currentUser) return;
+    
+    setIsSubmitting(true);
+    try {
+      await addDoc(collection(db, 'requests'), {
+        fromUserId: currentUser.uid,
+        toUserId: targetId,
+        offering: willTeach,
+        seeking: wantToLearn,
+        message: pitch,
+        status: 'pending',
+        createdAt: serverTimestamp()
+      });
+      setStep(2);
+    } catch (error) {
+      console.error("Error sending request:", error);
+      alert("Failed to send request. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  if (isLoadingUser) {
+    return <div className="min-h-[calc(100vh-64px)] flex items-center justify-center">Loading...</div>;
+  }
+
+  if (!targetUser) {
+    return (
+      <div className="min-h-[calc(100vh-64px)] flex flex-col items-center justify-center p-8 text-center">
+        <h1 className="text-2xl font-bold mb-4">User Not Found</h1>
+        <Link to="/explore" className="text-[#10B981] hover:underline">Return to Explore</Link>
+      </div>
+    );
+  }
+
+  // Fallbacks if skills are empty
+  const targetSkills = targetUser.canTeach?.length > 0 ? targetUser.canTeach : ['General Mentorship'];
+  const mySkills = currentUser?.canTeach?.length > 0 ? currentUser.canTeach : ['General Knowledge'];
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-[#FAFAFA] font-sans text-[#0A0A0A] py-12 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
@@ -27,8 +100,8 @@ const CreateRequest = () => {
         
         {step === 1 ? (
           <>
-            <Link to="/profile" className="inline-flex items-center text-sm font-semibold text-[#737373] hover:text-[#0A0A0A] transition-colors mb-6">
-              <ArrowLeft className="w-4 h-4 mr-1.5" /> Back to Profile
+            <Link to="/explore" className="inline-flex items-center text-sm font-semibold text-[#737373] hover:text-[#0A0A0A] transition-colors mb-6">
+              <ArrowLeft className="w-4 h-4 mr-1.5" /> Back to Explore
             </Link>
 
             <div className="bg-white rounded-2xl border border-[#E5E5E5] shadow-[0_2px_20px_rgb(0,0,0,0.04)] overflow-hidden">
@@ -36,9 +109,9 @@ const CreateRequest = () => {
               {/* Header */}
               <div className="p-6 sm:p-8 border-b border-[#E5E5E5] bg-[#FAFAFA] text-center sm:text-left flex flex-col sm:flex-row items-center gap-6">
                 <img 
-                  src={targetUser.avatar} 
+                  src={targetUser.avatarUrl || "https://i.pravatar.cc/150?img=47"} 
                   alt={targetUser.name} 
-                  className="w-20 h-20 rounded-full border border-[#E5E5E5] grayscale shadow-sm"
+                  className="w-20 h-20 rounded-full border border-[#E5E5E5] grayscale shadow-sm object-cover"
                 />
                 <div>
                   <h1 className="text-2xl font-bold tracking-tight text-[#0A0A0A]">Propose a Swap</h1>
@@ -62,9 +135,15 @@ const CreateRequest = () => {
                       What do you want to learn?
                     </label>
                     <div className="space-y-3">
-                      {targetUser.canTeach.map((skill, i) => (
+                      {targetSkills.map((skill, i) => (
                         <label key={i} className="flex items-center p-3 border border-[#E5E5E5] rounded-lg cursor-pointer hover:bg-[#FAFAFA] transition-colors has-[:checked]:border-[#0A0A0A] has-[:checked]:ring-1 has-[:checked]:ring-[#0A0A0A]">
-                          <input type="radio" name="wantToLearn" defaultChecked={i === 0} className="w-4 h-4 text-[#0A0A0A] border-gray-300 focus:ring-[#0A0A0A]" />
+                          <input 
+                            type="radio" 
+                            name="wantToLearn" 
+                            checked={wantToLearn === skill} 
+                            onChange={() => setWantToLearn(skill)}
+                            className="w-4 h-4 text-[#0A0A0A] border-gray-300 focus:ring-[#0A0A0A]" 
+                          />
                           <span className="ml-3 text-sm font-semibold text-[#0A0A0A]">{skill}</span>
                         </label>
                       ))}
@@ -82,7 +161,13 @@ const CreateRequest = () => {
                     <div className="space-y-3">
                       {mySkills.map((skill, i) => (
                         <label key={i} className="flex items-center p-3 border border-[#E5E5E5] rounded-lg cursor-pointer hover:bg-[#FAFAFA] transition-colors has-[:checked]:border-[#0A0A0A] has-[:checked]:ring-1 has-[:checked]:ring-[#0A0A0A]">
-                          <input type="radio" name="willTeach" defaultChecked={i === 0} className="w-4 h-4 text-[#0A0A0A] border-gray-300 focus:ring-[#0A0A0A]" />
+                          <input 
+                            type="radio" 
+                            name="willTeach" 
+                            checked={willTeach === skill}
+                            onChange={() => setWillTeach(skill)}
+                            className="w-4 h-4 text-[#0A0A0A] border-gray-300 focus:ring-[#0A0A0A]" 
+                          />
                           <span className="ml-3 text-sm font-semibold text-[#0A0A0A]">{skill}</span>
                         </label>
                       ))}
@@ -104,6 +189,8 @@ const CreateRequest = () => {
                   <textarea 
                     rows="4" 
                     required
+                    value={pitch}
+                    onChange={(e) => setPitch(e.target.value)}
                     placeholder={`Hi ${targetUser.name.split(' ')[0]}, I am looking to improve my...`}
                     className="block w-full py-3 px-4 border border-[#E5E5E5] rounded-xl text-[#0A0A0A] placeholder-[#737373] focus:outline-none focus:ring-1 focus:ring-[#0A0A0A] focus:border-[#0A0A0A] sm:text-sm bg-[#FAFAFA] focus:bg-white resize-none transition-colors"
                   ></textarea>
@@ -111,9 +198,9 @@ const CreateRequest = () => {
 
                 {/* Submit Action */}
                 <div className="pt-6">
-                  <button type="submit" className="w-full flex justify-center items-center py-3.5 px-4 border border-transparent rounded-lg text-base font-bold text-white bg-[#0A0A0A] hover:bg-[#262626] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0A0A0A] transition-colors shadow-sm">
+                  <button type="submit" disabled={isSubmitting} className="w-full flex justify-center items-center py-3.5 px-4 border border-transparent rounded-lg text-base font-bold text-white bg-[#0A0A0A] hover:bg-[#262626] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0A0A0A] transition-colors shadow-sm disabled:opacity-50">
                     <Repeat className="w-5 h-5 mr-2" />
-                    Send Swap Request
+                    {isSubmitting ? 'Sending...' : 'Send Swap Request'}
                   </button>
                   <p className="text-center text-xs text-[#737373] mt-4">
                     By requesting a swap, you commit to providing 1 hour of professional mentorship if accepted.

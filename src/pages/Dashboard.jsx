@@ -1,11 +1,64 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Repeat, Clock, Star, Bell, ArrowRight, Calendar, MessageSquare, CheckCircle, MoreHorizontal } from 'lucide-react';
+import { collection, query, where, onSnapshot, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 
 const Dashboard = () => {
   const { currentUser } = useAuth();
+  const [pendingRequests, setPendingRequests] = useState([]);
   
+  useEffect(() => {
+    if (!currentUser) return;
+    
+    const q = query(
+      collection(db, 'requests'),
+      where('toUserId', '==', currentUser.uid),
+      where('status', '==', 'pending')
+    );
+
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+      const requestsData = [];
+      for (const document of snapshot.docs) {
+        const req = document.data();
+        const userDoc = await getDoc(doc(db, 'users', req.fromUserId));
+        const userData = userDoc.exists() ? userDoc.data() : {};
+        
+        requestsData.push({
+          id: document.id,
+          ...req,
+          from: userData.name || 'Unknown User',
+          role: userData.title || 'Member',
+          avatar: userData.avatarUrl || 'https://i.pravatar.cc/150?img=47',
+          timeAgo: 'Recently'
+        });
+      }
+      setPendingRequests(requestsData);
+    });
+
+    return () => unsubscribe();
+  }, [currentUser]);
+
+  const handleUpdateStatus = async (request, newStatus) => {
+    try {
+      await updateDoc(doc(db, 'requests', request.id), {
+        status: newStatus
+      });
+      if (newStatus === 'accepted') {
+        // Create a chat document
+        const { addDoc, serverTimestamp } = await import('firebase/firestore');
+        await addDoc(collection(db, 'chats'), {
+          participants: [request.fromUserId, request.toUserId],
+          updatedAt: serverTimestamp(),
+          topic: `${request.offering} ↔ ${request.seeking}`
+        });
+      }
+    } catch (err) {
+      console.error("Error updating request status:", err);
+    }
+  };
+
   // Real stats will be fetched once the Requests backend is built
   const stats = [
     { label: 'Active Swaps', value: '0', trend: 'No active swaps yet', icon: Repeat },
@@ -14,7 +67,6 @@ const Dashboard = () => {
   ];
 
   const upcomingSessions = [];
-  const pendingRequests = [];
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] font-sans text-[#0A0A0A] pb-16">
@@ -113,7 +165,11 @@ const Dashboard = () => {
               <div className="px-6 py-5 border-b border-[#E5E5E5] flex justify-between items-center bg-[#FAFAFA]/50">
                 <div className="flex items-center gap-2">
                   <h3 className="text-base font-bold text-[#0A0A0A]">Pending Requests</h3>
-                  <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold bg-[#0A0A0A] text-white">2</span>
+                  {pendingRequests.length > 0 && (
+                    <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold bg-[#0A0A0A] text-white">
+                      {pendingRequests.length}
+                    </span>
+                  )}
                 </div>
                 <Link to="/requests" className="text-sm font-semibold text-[#737373] hover:text-[#0A0A0A] transition-colors">View All</Link>
               </div>
@@ -150,10 +206,16 @@ const Dashboard = () => {
                       </div>
 
                       <div className="flex gap-3">
-                        <button className="flex-1 inline-flex justify-center items-center px-4 py-2 bg-[#0A0A0A] text-white rounded-lg text-sm font-semibold hover:bg-[#262626] transition-colors">
+                        <button 
+                          onClick={() => handleUpdateStatus(request, 'accepted')}
+                          className="flex-1 inline-flex justify-center items-center px-4 py-2 bg-[#0A0A0A] text-white rounded-lg text-sm font-semibold hover:bg-[#262626] transition-colors"
+                        >
                           Accept Swap
                         </button>
-                        <button className="flex-1 inline-flex justify-center items-center px-4 py-2 bg-white border border-[#E5E5E5] text-[#0A0A0A] rounded-lg text-sm font-semibold hover:bg-[#FAFAFA] transition-colors">
+                        <button 
+                          onClick={() => handleUpdateStatus(request, 'declined')}
+                          className="flex-1 inline-flex justify-center items-center px-4 py-2 bg-white border border-[#E5E5E5] text-[#0A0A0A] rounded-lg text-sm font-semibold hover:bg-[#FAFAFA] transition-colors"
+                        >
                           Decline
                         </button>
                       </div>

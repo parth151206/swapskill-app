@@ -1,52 +1,82 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Clock, MessageSquare, Check, X } from 'lucide-react';
+import { collection, query, where, onSnapshot, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { db } from '../firebase';
+import { useAuth } from '../contexts/AuthContext';
 
 const Requests = () => {
+  const { currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState('received');
+  const [requests, setRequests] = useState({ received: [], sent: [] });
 
-  const requests = {
-    received: [
-      {
-        id: 1,
-        user: {
-          name: 'Marcus J.',
-          role: 'Backend Developer @ Stripe',
-          avatar: 'https://i.pravatar.cc/150?img=55',
-        },
-        offering: 'Node.js Microservices Architecture',
-        seeking: 'CSS Grid & Advanced Flexbox',
-        message: "Hi Sarah! I saw you're an expert in modern CSS. I've been struggling to transition our backend dashboards to use Grid. I'd love to trade some Node architecture best practices for a masterclass on CSS layouts.",
-        timeAgo: '2 hours ago'
-      },
-      {
-        id: 2,
-        user: {
-          name: 'Sophie W.',
-          role: 'Product Manager @ Atlassian',
-          avatar: 'https://i.pravatar.cc/150?img=22',
-        },
-        offering: 'Agile Product Strategy & Backlog Grooming',
-        seeking: 'React Basics for PMs',
-        message: "Hey! I'm trying to get a better technical grasp on the frontend stack my team uses. Would love to swap some PM frameworks for a high-level walkthrough of React fundamentals.",
-        timeAgo: '5 hours ago'
+  useEffect(() => {
+    if (!currentUser) return;
+
+    // Listen for Received Requests
+    const receivedQ = query(collection(db, 'requests'), where('toUserId', '==', currentUser.uid));
+    const unsubReceived = onSnapshot(receivedQ, async (snapshot) => {
+      const recData = [];
+      for (const d of snapshot.docs) {
+        const req = d.data();
+        const userDoc = await getDoc(doc(db, 'users', req.fromUserId));
+        const user = userDoc.exists() ? userDoc.data() : {};
+        recData.push({
+          id: d.id,
+          ...req,
+          user: {
+            name: user.name || 'Unknown',
+            role: user.title || 'Member',
+            avatar: user.avatarUrl || 'https://i.pravatar.cc/150?img=47'
+          },
+          timeAgo: 'Recently'
+        });
       }
-    ],
-    sent: [
-      {
-        id: 3,
-        user: {
-          name: 'Alex Rivera',
-          role: 'CTO @ DataTech',
-          avatar: 'https://i.pravatar.cc/150?img=68',
-        },
-        offering: 'Figma Prototyping',
-        seeking: 'AWS Infrastructure',
-        message: "Hi Alex, I noticed you have deep AWS expertise. I'm looking to learn more about serverless deployments and can offer advanced Figma UX/UI training in return.",
-        status: 'pending',
-        timeAgo: '1 day ago'
+      setRequests(prev => ({ ...prev, received: recData }));
+    });
+
+    // Listen for Sent Requests
+    const sentQ = query(collection(db, 'requests'), where('fromUserId', '==', currentUser.uid));
+    const unsubSent = onSnapshot(sentQ, async (snapshot) => {
+      const sentData = [];
+      for (const d of snapshot.docs) {
+        const req = d.data();
+        const userDoc = await getDoc(doc(db, 'users', req.toUserId));
+        const user = userDoc.exists() ? userDoc.data() : {};
+        sentData.push({
+          id: d.id,
+          ...req,
+          user: {
+            name: user.name || 'Unknown',
+            role: user.title || 'Member',
+            avatar: user.avatarUrl || 'https://i.pravatar.cc/150?img=47'
+          },
+          timeAgo: 'Recently'
+        });
       }
-    ]
+      setRequests(prev => ({ ...prev, sent: sentData }));
+    });
+
+    return () => {
+      unsubReceived();
+      unsubSent();
+    };
+  }, [currentUser]);
+
+  const handleUpdateStatus = async (request, newStatus) => {
+    try {
+      await updateDoc(doc(db, 'requests', request.id), { status: newStatus });
+      if (newStatus === 'accepted') {
+        const { addDoc, serverTimestamp } = await import('firebase/firestore');
+        await addDoc(collection(db, 'chats'), {
+          participants: [request.fromUserId, request.toUserId],
+          updatedAt: serverTimestamp(),
+          topic: `${request.offering} ↔ ${request.seeking}`
+        });
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const currentList = activeTab === 'received' ? requests.received : requests.sent;
@@ -149,24 +179,43 @@ const Requests = () => {
 
                 {/* Actions */}
                 <div className="flex items-center justify-end gap-3 pt-6 border-t border-[#E5E5E5]">
-                  {activeTab === 'received' ? (
-                    <>
-                      <button className="px-5 py-2.5 border border-[#E5E5E5] rounded-lg text-sm font-semibold text-[#0A0A0A] bg-white hover:bg-[#FAFAFA] transition-colors flex items-center gap-2">
-                        <X className="w-4 h-4" /> Decline
-                      </button>
-                      <button className="px-5 py-2.5 border border-transparent rounded-lg text-sm font-semibold text-white bg-[#0A0A0A] hover:bg-[#262626] transition-colors flex items-center gap-2">
-                        <Check className="w-4 h-4" /> Accept Swap
-                      </button>
-                    </>
+                  {request.status === 'pending' ? (
+                    activeTab === 'received' ? (
+                      <>
+                        <button 
+                          onClick={() => handleUpdateStatus(request, 'declined')}
+                          className="px-5 py-2.5 border border-[#E5E5E5] rounded-lg text-sm font-semibold text-[#0A0A0A] bg-white hover:bg-[#FAFAFA] transition-colors flex items-center gap-2"
+                        >
+                          <X className="w-4 h-4" /> Decline
+                        </button>
+                        <button 
+                          onClick={() => handleUpdateStatus(request, 'accepted')}
+                          className="px-5 py-2.5 border border-transparent rounded-lg text-sm font-semibold text-white bg-[#0A0A0A] hover:bg-[#262626] transition-colors flex items-center gap-2"
+                        >
+                          <Check className="w-4 h-4" /> Accept Swap
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <span className="mr-auto inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-[#FAFAFA] text-[#737373] border border-[#E5E5E5] uppercase tracking-wide">
+                          Pending Response
+                        </span>
+                        <button 
+                          onClick={() => handleUpdateStatus(request, 'cancelled')}
+                          className="px-5 py-2.5 border border-[#E5E5E5] rounded-lg text-sm font-semibold text-[#0A0A0A] bg-white hover:bg-[#FAFAFA] transition-colors"
+                        >
+                          Cancel Request
+                        </button>
+                      </>
+                    )
                   ) : (
-                    <>
-                      <span className="mr-auto inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-[#FAFAFA] text-[#737373] border border-[#E5E5E5] uppercase tracking-wide">
-                        Pending Response
-                      </span>
-                      <button className="px-5 py-2.5 border border-[#E5E5E5] rounded-lg text-sm font-semibold text-[#0A0A0A] bg-white hover:bg-[#FAFAFA] transition-colors">
-                        Cancel Request
-                      </button>
-                    </>
+                    <span className={`mr-auto inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold border uppercase tracking-wide
+                      ${request.status === 'accepted' ? 'bg-[#10B981]/10 text-[#10B981] border-[#10B981]/20' : ''}
+                      ${request.status === 'declined' ? 'bg-red-50 text-red-600 border-red-100' : ''}
+                      ${request.status === 'cancelled' ? 'bg-[#FAFAFA] text-[#737373] border-[#E5E5E5]' : ''}
+                    `}>
+                      {request.status}
+                    </span>
                   )}
                 </div>
 
