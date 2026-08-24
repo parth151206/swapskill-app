@@ -9,6 +9,27 @@ const Dashboard = () => {
   const { currentUser } = useAuth();
   const [pendingRequests, setPendingRequests] = useState([]);
   
+  const [activeSwapsCount, setActiveSwapsCount] = useState(0);
+
+  // Fetch active swaps for stats
+  useEffect(() => {
+    if (!currentUser) return;
+    const q = query(
+      collection(db, 'chats'), 
+      where('participants', 'array-contains', currentUser.uid)
+    );
+    const unsub = onSnapshot(q, (snapshot) => {
+      let activeCount = 0;
+      snapshot.forEach(doc => {
+        if (doc.data().status !== 'completed') {
+          activeCount++;
+        }
+      });
+      setActiveSwapsCount(activeCount);
+    });
+    return () => unsub();
+  }, [currentUser]);
+  
   useEffect(() => {
     if (!currentUser) return;
     
@@ -28,9 +49,10 @@ const Dashboard = () => {
         requestsData.push({
           id: document.id,
           ...req,
+          userId: req.fromUserId,
           from: userData.name || 'Unknown User',
           role: userData.title || 'Member',
-          avatar: userData.avatarUrl || 'https://i.pravatar.cc/150?img=47',
+          avatar: userData.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.name || 'U')}&background=0A0A0A&color=fff&size=150`,
           timeAgo: 'Recently'
         });
       }
@@ -51,7 +73,8 @@ const Dashboard = () => {
         await addDoc(collection(db, 'chats'), {
           participants: [request.fromUserId, request.toUserId],
           updatedAt: serverTimestamp(),
-          topic: `${request.offering} ↔ ${request.seeking}`
+          topic: `${request.offering} ↔ ${request.seeking}`,
+          status: 'active'
         });
       }
     } catch (err) {
@@ -59,9 +82,8 @@ const Dashboard = () => {
     }
   };
 
-  // Real stats will be fetched once the Requests backend is built
   const stats = [
-    { label: 'Active Swaps', value: '0', trend: 'No active swaps yet', icon: Repeat },
+    { label: 'Active Swaps', value: activeSwapsCount.toString(), trend: activeSwapsCount > 0 ? 'Currently exchanging skills' : 'No active swaps yet', icon: Repeat },
     { label: 'Hours Exchanged', value: '0', trend: 'Start swapping to earn hours', icon: Clock },
     { label: 'Avg Rating', value: '0.0', trend: 'No reviews yet', icon: Star },
   ];
@@ -121,7 +143,7 @@ const Dashboard = () => {
             <div className="bg-white rounded-xl border border-[#E5E5E5] shadow-[0_2px_10px_rgb(0,0,0,0.02)] overflow-hidden">
               <div className="px-6 py-5 border-b border-[#E5E5E5] flex justify-between items-center bg-[#FAFAFA]/50">
                 <h3 className="text-base font-bold text-[#0A0A0A]">Upcoming Sessions</h3>
-                <button className="text-sm font-semibold text-[#737373] hover:text-[#0A0A0A] transition-colors">View Calendar</button>
+                <Link to="/matches" className="text-sm font-semibold text-[#737373] hover:text-[#0A0A0A] transition-colors">View Active Swaps</Link>
               </div>
               <div className="divide-y divide-[#E5E5E5]">
                 {upcomingSessions.length === 0 ? (
@@ -132,7 +154,7 @@ const Dashboard = () => {
                   upcomingSessions.map(session => (
                     <div key={session.id} className="p-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center hover:bg-[#FAFAFA] transition-colors">
                       <div className="relative shrink-0">
-                        <img src={session.avatar} alt={session.partner} className="w-12 h-12 rounded-full border border-[#E5E5E5] grayscale" />
+                        <img src={session.avatar} alt={session.partner} className="w-12 h-12 rounded-full border border-[#E5E5E5] object-cover" />
                         <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-sm">
                           <CheckCircle className="w-4 h-4 text-[#10B981] fill-[#10B981]/10" />
                         </div>
@@ -183,9 +205,11 @@ const Dashboard = () => {
                     <div key={request.id} className="p-6">
                       <div className="flex justify-between items-start mb-4">
                         <div className="flex gap-3">
-                          <img src={request.avatar} alt={request.from} className="w-10 h-10 rounded-full border border-[#E5E5E5] grayscale" />
+                          <Link to={`/profile?id=${request.userId}`}>
+                            <img src={request.avatar} alt={request.from} className="w-10 h-10 rounded-full border border-[#E5E5E5] object-cover hover:opacity-90 transition-all cursor-pointer" />
+                          </Link>
                           <div>
-                            <div className="text-sm font-bold text-[#0A0A0A]">{request.from}</div>
+                            <Link to={`/profile?id=${request.userId}`} className="text-sm font-bold text-[#0A0A0A] hover:underline">{request.from}</Link>
                             <div className="text-xs text-[#737373]">{request.role}</div>
                           </div>
                         </div>
@@ -203,18 +227,23 @@ const Dashboard = () => {
                             <span className="font-medium text-[#0A0A0A]">{request.seeking}</span>
                           </div>
                         </div>
+                        {request.message && (
+                          <div className="mt-4 pt-4 border-t border-[#E5E5E5] text-[#737373] italic">
+                            "{request.message}"
+                          </div>
+                        )}
                       </div>
 
-                      <div className="flex gap-3">
+                      <div className="flex items-center gap-3">
                         <button 
                           onClick={() => handleUpdateStatus(request, 'accepted')}
-                          className="flex-1 inline-flex justify-center items-center px-4 py-2 bg-[#0A0A0A] text-white rounded-lg text-sm font-semibold hover:bg-[#262626] transition-colors"
+                          className="flex-1 flex justify-center items-center py-2.5 px-4 border border-transparent rounded-lg text-sm font-bold text-white bg-[#0A0A0A] hover:bg-[#262626] transition-colors"
                         >
                           Accept Swap
                         </button>
                         <button 
                           onClick={() => handleUpdateStatus(request, 'declined')}
-                          className="flex-1 inline-flex justify-center items-center px-4 py-2 bg-white border border-[#E5E5E5] text-[#0A0A0A] rounded-lg text-sm font-semibold hover:bg-[#FAFAFA] transition-colors"
+                          className="flex-1 flex justify-center items-center py-2.5 px-4 border border-[#E5E5E5] rounded-lg text-sm font-bold text-[#0A0A0A] bg-white hover:bg-[#FAFAFA] transition-colors"
                         >
                           Decline
                         </button>
@@ -234,7 +263,7 @@ const Dashboard = () => {
             <div className="bg-white rounded-xl border border-[#E5E5E5] p-6 shadow-[0_2px_10px_rgb(0,0,0,0.02)]">
               <h3 className="text-sm font-bold text-[#0A0A0A] uppercase tracking-wide mb-4">Quick Actions</h3>
               <div className="space-y-2">
-                <button className="w-full flex items-center justify-between p-3 rounded-lg border border-[#E5E5E5] hover:border-[#0A0A0A] hover:bg-[#FAFAFA] transition-colors group">
+                <Link to="/messages" className="w-full flex items-center justify-between p-3 rounded-lg border border-[#E5E5E5] hover:border-[#0A0A0A] hover:bg-[#FAFAFA] transition-colors group">
                   <div className="flex items-center gap-3">
                     <div className="bg-[#FAFAFA] group-hover:bg-white p-2 rounded-md border border-[#E5E5E5] transition-colors">
                       <MessageSquare className="w-4 h-4 text-[#0A0A0A]" />
@@ -242,8 +271,8 @@ const Dashboard = () => {
                     <span className="text-sm font-semibold text-[#0A0A0A]">Send Message</span>
                   </div>
                   <ArrowRight className="w-4 h-4 text-[#737373] group-hover:translate-x-1 transition-transform" />
-                </button>
-                <button className="w-full flex items-center justify-between p-3 rounded-lg border border-[#E5E5E5] hover:border-[#0A0A0A] hover:bg-[#FAFAFA] transition-colors group">
+                </Link>
+                <Link to="/settings" className="w-full flex items-center justify-between p-3 rounded-lg border border-[#E5E5E5] hover:border-[#0A0A0A] hover:bg-[#FAFAFA] transition-colors group">
                   <div className="flex items-center gap-3">
                     <div className="bg-[#FAFAFA] group-hover:bg-white p-2 rounded-md border border-[#E5E5E5] transition-colors">
                       <Calendar className="w-4 h-4 text-[#0A0A0A]" />
@@ -251,45 +280,15 @@ const Dashboard = () => {
                     <span className="text-sm font-semibold text-[#0A0A0A]">Update Availability</span>
                   </div>
                   <ArrowRight className="w-4 h-4 text-[#737373] group-hover:translate-x-1 transition-transform" />
-                </button>
+                </Link>
               </div>
             </div>
 
             {/* Network Activity */}
             <div className="bg-white rounded-xl border border-[#E5E5E5] p-6 shadow-[0_2px_10px_rgb(0,0,0,0.02)]">
               <h3 className="text-sm font-bold text-[#0A0A0A] uppercase tracking-wide mb-6">Network Activity</h3>
-              <div className="relative border-l-2 border-[#E5E5E5] pl-4 ml-2 space-y-6">
-                
-                <div className="relative">
-                  <div className="absolute -left-[23px] bg-white p-1 rounded-full">
-                    <div className="w-2 h-2 rounded-full bg-[#10B981]"></div>
-                  </div>
-                  <p className="text-sm text-[#0A0A0A] leading-snug">
-                    <span className="font-bold">Elena R.</span> left you a 5-star review for React Performance Tuning.
-                  </p>
-                  <span className="text-xs font-medium text-[#737373] mt-1 block">Yesterday</span>
-                </div>
-
-                <div className="relative">
-                  <div className="absolute -left-[23px] bg-white p-1 rounded-full">
-                    <div className="w-2 h-2 rounded-full bg-[#0A0A0A]"></div>
-                  </div>
-                  <p className="text-sm text-[#0A0A0A] leading-snug">
-                    Your Swap Request with <span className="font-bold">David K.</span> was accepted.
-                  </p>
-                  <span className="text-xs font-medium text-[#737373] mt-1 block">2 days ago</span>
-                </div>
-
-                <div className="relative">
-                  <div className="absolute -left-[23px] bg-white p-1 rounded-full">
-                    <div className="w-2 h-2 rounded-full bg-[#E5E5E5]"></div>
-                  </div>
-                  <p className="text-sm text-[#0A0A0A] leading-snug text-[#737373]">
-                    You updated your "Seeking to Learn" skills to include <span className="font-medium">UX Research</span>.
-                  </p>
-                  <span className="text-xs font-medium text-[#737373] mt-1 block">1 week ago</span>
-                </div>
-
+              <div className="text-center text-[#737373] text-sm py-8">
+                No recent activity to show. Connect with others to grow your network!
               </div>
             </div>
 
