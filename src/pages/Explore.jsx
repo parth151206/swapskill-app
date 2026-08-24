@@ -54,8 +54,11 @@ const Explore = () => {
     const matchesAvailability = 
       selectedAvailability === 'All' || 
       (user.availability && user.availability === selectedAvailability);
+
+    // Apply Privacy Filter (hide if explicitly opted out)
+    const matchesPrivacy = user.privacyListing !== false;
     
-    return matchesSearch && matchesExperience && matchesAvailability;
+    return matchesSearch && matchesExperience && matchesAvailability && matchesPrivacy;
   });
 
   const clearFilters = () => {

@@ -16,7 +16,12 @@ const Settings = () => {
     canTeach: '',
     wantToLearn: '',
     experience: 'Intermediate',
-    availability: 'Flexible'
+    availability: 'Flexible',
+    notifyNewRequests: true,
+    notifyMessages: true,
+    notifyReminders: true,
+    notifyUpdates: false,
+    privacyListing: true
   });
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
@@ -152,13 +157,28 @@ const Settings = () => {
         canTeach: currentUser.canTeach ? currentUser.canTeach.join(', ') : '',
         wantToLearn: currentUser.wantToLearn ? currentUser.wantToLearn.join(', ') : '',
         experience: currentUser.experience || 'Intermediate',
-        availability: currentUser.availability || 'Flexible'
+        availability: currentUser.availability || 'Flexible',
+        notifyNewRequests: currentUser.notifyNewRequests ?? true,
+        notifyMessages: currentUser.notifyMessages ?? true,
+        notifyReminders: currentUser.notifyReminders ?? true,
+        notifyUpdates: currentUser.notifyUpdates ?? false,
+        privacyListing: currentUser.privacyListing ?? true
       });
     }
   }, [currentUser]);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handleToggle = (name) => {
+    setFormData(prev => ({
+      ...prev,
+      [name]: !prev[name]
+    }));
   };
 
   const handleSave = async () => {
@@ -176,6 +196,11 @@ const Settings = () => {
         wantToLearn: formData.wantToLearn.split(',').map(s => s.trim()).filter(Boolean),
         experience: formData.experience,
         availability: formData.availability,
+        notifyNewRequests: formData.notifyNewRequests,
+        notifyMessages: formData.notifyMessages,
+        notifyReminders: formData.notifyReminders,
+        notifyUpdates: formData.notifyUpdates,
+        privacyListing: formData.privacyListing,
       }, { merge: true });
       setSaveMessage('Profile saved successfully!');
       setTimeout(() => setSaveMessage(''), 3000);
@@ -440,10 +465,10 @@ const Settings = () => {
                 
                 <div className="space-y-4">
                   {[
-                    { title: 'New Swap Requests', desc: 'Receive an email when someone wants to swap skills with you.' },
-                    { title: 'Messages', desc: 'Receive an email when you get a new direct message.' },
-                    { title: 'Exchange Reminders', desc: 'Receive a reminder to share resources before a scheduled exchange.' },
-                    { title: 'Platform Updates', desc: 'News about major feature releases.' }
+                    { name: 'notifyNewRequests', title: 'New Swap Requests', desc: 'Receive an email when someone wants to swap skills with you.' },
+                    { name: 'notifyMessages', title: 'Messages', desc: 'Receive an email when you get a new direct message.' },
+                    { name: 'notifyReminders', title: 'Exchange Reminders', desc: 'Receive a reminder to share resources before a scheduled exchange.' },
+                    { name: 'notifyUpdates', title: 'Platform Updates', desc: 'News about major feature releases.' }
                   ].map((item, i) => (
                     <div key={i} className="flex items-start justify-between py-4 border-b border-[#E5E5E5] last:border-0 last:pb-0">
                       <div className="pr-4">
@@ -452,7 +477,12 @@ const Settings = () => {
                       </div>
                       <div className="shrink-0 pt-1">
                         <label className="relative inline-flex items-center cursor-pointer">
-                          <input type="checkbox" className="sr-only peer" defaultChecked={i < 3} />
+                          <input 
+                            type="checkbox" 
+                            className="sr-only peer" 
+                            checked={formData[item.name]}
+                            onChange={() => handleToggle(item.name)}
+                          />
                           <div className="w-11 h-6 bg-[#E5E5E5] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#0A0A0A]"></div>
                         </label>
                       </div>
@@ -472,7 +502,12 @@ const Settings = () => {
                   </div>
                   <div className="shrink-0 pt-1">
                     <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" defaultChecked />
+                      <input 
+                        type="checkbox" 
+                        className="sr-only peer" 
+                        checked={formData.privacyListing}
+                        onChange={() => handleToggle('privacyListing')}
+                      />
                       <div className="w-11 h-6 bg-[#E5E5E5] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#0A0A0A]"></div>
                     </label>
                   </div>
