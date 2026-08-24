@@ -3,7 +3,7 @@ import { User, Lock, Bell, Shield, LogOut, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { db, storage, auth } from '../firebase';
 import { doc, setDoc, deleteDoc } from 'firebase/firestore';
-import { sendPasswordResetEmail, deleteUser } from 'firebase/auth';
+import { deleteUser } from 'firebase/auth';
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState('profile');
@@ -115,22 +115,6 @@ const Settings = () => {
       setUploading(false);
     }
   };
-  const [passwordResetSent, setPasswordResetSent] = useState(false);
-  const handlePasswordReset = async () => {
-    if (!currentUser?.email) return;
-    setAuthLoading(true);
-    setPasswordResetSent(false);
-    try {
-      await sendPasswordResetEmail(auth, currentUser.email);
-      setPasswordResetSent(true);
-    } catch (err) {
-      console.error(err);
-      alert('Failed to send password reset email. Please try again.');
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
   const handleDeleteAccount = async () => {
     if (deleteStep === 0) {
       setDeleteStep(1);
@@ -397,29 +381,6 @@ const Settings = () => {
                     <label className="block text-sm font-bold text-[#0A0A0A] mb-2">Email Address</label>
                     <input type="email" disabled value={currentUser?.email || ''} className="block w-full py-2.5 px-3 border border-[#E5E5E5] rounded-lg text-[#737373] bg-[#E5E5E5]/30 sm:text-sm cursor-not-allowed" />
                     <p className="mt-2 text-xs text-[#737373]">Your email address is verified and cannot be changed.</p>
-                  </div>
-                  
-                  <div className="pt-4">
-                    {currentUser?.providerData?.[0]?.providerId === 'google.com' ? (
-                      <p className="text-sm text-[#737373] bg-[#FAFAFA] p-3 rounded-lg border border-[#E5E5E5]">
-                        You signed in using Google. Your password is managed securely by Google.
-                      </p>
-                    ) : (
-                      <div>
-                        <button 
-                          onClick={handlePasswordReset}
-                          disabled={authLoading}
-                          className="px-4 py-2 border border-[#E5E5E5] text-[#0A0A0A] text-sm font-semibold rounded-lg hover:bg-[#FAFAFA] transition-colors disabled:opacity-50"
-                        >
-                          {authLoading ? 'Sending...' : 'Send Password Reset Email'}
-                        </button>
-                        {passwordResetSent && (
-                          <p className="mt-3 text-sm font-bold text-[#10B981]">
-                            Email sent! Please check your Spam / Junk folder.
-                          </p>
-                        )}
-                      </div>
-                    )}
                   </div>
                 </div>
 
