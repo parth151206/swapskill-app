@@ -27,8 +27,8 @@ const Settings = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 2 * 1024 * 1024) {
-      setUploadError('File must be smaller than 2MB');
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError('File must be smaller than 5MB');
       return;
     }
 
@@ -36,17 +36,55 @@ const Settings = () => {
     setUploadError('');
 
     try {
-      const storageRef = ref(storage, `avatars/${currentUser.uid}_${Date.now()}`);
-      await uploadBytes(storageRef, file);
-      const downloadUrl = await getDownloadURL(storageRef);
+      // Compress image using HTML5 Canvas to avoid Firebase Storage
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = async () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 256;
+          const MAX_HEIGHT = 256;
+          let width = img.width;
+          let height = img.height;
 
-      const userRef = doc(db, 'users', currentUser.uid);
-      await setDoc(userRef, { avatarUrl: downloadUrl }, { merge: true });
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Get base64 string (heavily compressed)
+          const base64String = canvas.toDataURL('image/jpeg', 0.7);
+
+          try {
+            const userRef = doc(db, 'users', currentUser.uid);
+            await setDoc(userRef, { avatarUrl: base64String }, { merge: true });
+          } catch (firestoreErr) {
+            console.error("Firestore error:", firestoreErr);
+            setUploadError('Database error. Check Firestore rules.');
+          } finally {
+            setUploading(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+          }
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
       
     } catch (err) {
-      console.error("Error uploading avatar:", err);
-      setUploadError('Failed to upload image. Please try again.');
-    } finally {
+      console.error("Error processing avatar:", err);
+      setUploadError('Failed to process image. Please try again.');
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
