@@ -83,12 +83,19 @@ const Profile = () => {
           <div className="flex flex-col sm:flex-row gap-6 sm:items-end justify-between">
             
             <div className="flex flex-col sm:flex-row gap-6 sm:items-end">
-              <div className="relative w-24 h-24 sm:w-32 sm:h-32 rounded-xl border-4 border-white shadow-sm overflow-hidden shrink-0 bg-white">
+              <div className="relative w-24 h-24 sm:w-32 sm:h-32 rounded-xl border-4 border-white shadow-sm overflow-hidden shrink-0 bg-white group">
                 <img 
                   src={userData.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.name)}&background=0A0A0A&color=fff&size=150`}
                   alt={userData.name} 
                   className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-500"
                 />
+                
+                {isOwnProfile && (
+                  <Link to="/settings" className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
+                    <span className="text-white text-xs font-bold uppercase tracking-wider">Edit</span>
+                  </Link>
+                )}
+
                 <div className="absolute bottom-1 right-1 bg-white rounded-full p-0.5 shadow-sm">
                   <Shield className="w-5 h-5 text-[#10B981] fill-[#10B981]/20" />
                 </div>
