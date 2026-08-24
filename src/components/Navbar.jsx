@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X, Bell, Infinity as InfinityIcon, LogOut } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { db } from '../firebase';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -10,6 +12,24 @@ const Navbar = () => {
   
   const { currentUser, logout } = useAuth();
   const isLoggedIn = !!currentUser;
+  
+  const [hasUnread, setHasUnread] = useState(false);
+
+  useEffect(() => {
+    if (!currentUser) {
+      setHasUnread(false);
+      return;
+    }
+    const q = query(
+      collection(db, 'requests'),
+      where('toUserId', '==', currentUser.uid),
+      where('status', '==', 'pending')
+    );
+    const unsub = onSnapshot(q, (snapshot) => {
+      setHasUnread(snapshot.docs.length > 0);
+    });
+    return () => unsub();
+  }, [currentUser]);
 
   const toggleMenu = () => setIsOpen(!isOpen);
 
@@ -77,7 +97,9 @@ const Navbar = () => {
                 <Link to="/notifications" className="text-[#737373] hover:text-[#0A0A0A] relative transition-colors">
                   <span className="sr-only">View notifications</span>
                   <Bell className="h-5 w-5" aria-hidden="true" />
-                  <span className="absolute -top-1 -right-1 block h-2 w-2 rounded-full bg-[#10B981]" />
+                  {hasUnread && (
+                    <span className="absolute -top-1 -right-1 block h-2 w-2 rounded-full bg-[#10B981]" />
+                  )}
                 </Link>
                 
                 <div className="flex items-center pl-2 space-x-4">
@@ -171,7 +193,9 @@ const Navbar = () => {
                   </div>
                   <Link to="/notifications" onClick={() => setIsOpen(false)} className="ml-auto flex-shrink-0 bg-white p-2 rounded-full text-gray-400 hover:text-gray-500 relative">
                     <Bell className="h-6 w-6" aria-hidden="true" />
-                    <span className="absolute top-2 right-2 block h-2.5 w-2.5 rounded-full bg-red-500 border-2 border-white" />
+                    {hasUnread && (
+                      <span className="absolute top-2 right-2 block h-2.5 w-2.5 rounded-full bg-[#10B981] border-2 border-white" />
+                    )}
                   </Link>
                 </div>
                 <div className="mt-4 space-y-1 px-2">
@@ -211,10 +235,6 @@ const Navbar = () => {
                 </Link>
               </div>
             )}
-            
-            <div className="mt-6 px-4 flex justify-center text-sm text-gray-400 pb-2">
-              <button onClick={() => setIsLoggedIn(!isLoggedIn)} className="underline hover:text-gray-600">Toggle Mock Auth</button>
-            </div>
           </div>
         </div>
       )}

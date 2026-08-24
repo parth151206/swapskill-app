@@ -101,10 +101,12 @@ const Dashboard = () => {
             <p className="mt-1 text-sm text-[#737373]">Here's what's happening in your network today.</p>
           </div>
           <div className="flex gap-3">
-            <Link to="/requests" className="inline-flex items-center px-4 py-2 border border-[#E5E5E5] rounded-lg shadow-sm text-sm font-semibold text-[#0A0A0A] bg-white hover:bg-[#FAFAFA] transition-colors relative">
+            <Link to="/notifications" className="inline-flex items-center px-4 py-2 border border-[#E5E5E5] rounded-lg shadow-sm text-sm font-semibold text-[#0A0A0A] bg-white hover:bg-[#FAFAFA] transition-colors relative">
               <Bell className="w-4 h-4 mr-2 text-[#737373]" />
               Notifications
-              <span className="absolute -top-1 -right-1 w-3 h-3 bg-[#10B981] rounded-full border-2 border-white"></span>
+              {pendingRequests.length > 0 && (
+                <span className="absolute -top-1 -right-1 w-3 h-3 bg-[#10B981] rounded-full border-2 border-white"></span>
+              )}
             </Link>
             <Link to="/explore" className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-[#0A0A0A] hover:bg-[#262626] transition-colors">
               Find a Match
