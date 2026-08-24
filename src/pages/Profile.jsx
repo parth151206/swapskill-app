@@ -87,7 +87,7 @@ const Profile = () => {
                 <img 
                   src={userData.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.name)}&background=0A0A0A&color=fff&size=150`}
                   alt={userData.name} 
-                  className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-500"
+                  className="w-full h-full object-cover transition-all duration-500"
                 />
                 
                 {isOwnProfile && (

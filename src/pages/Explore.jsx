@@ -225,7 +225,7 @@ const Explore = () => {
                       {/* Profile Info */}
                       <div className="flex items-start gap-5">
                         <div className="relative">
-                          <img src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'U')}&background=0A0A0A&color=fff&size=150`} alt={user.name} className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border border-[#E5E5E5] grayscale group-hover:grayscale-0 transition-all duration-500" />
+                          <img src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'U')}&background=0A0A0A&color=fff&size=150`} alt={user.name} className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border border-[#E5E5E5] transition-all duration-500" />
                           <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5">
                             <CheckCircle className="w-5 h-5 text-[#10B981]" />
                           </div>
