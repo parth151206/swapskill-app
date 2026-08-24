@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User, Lock, Bell, Shield, LogOut, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { db, storage } from '../firebase';
-import { doc, updateDoc, setDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, storage, auth } from '../firebase';
+import { doc, setDoc, deleteDoc } from 'firebase/firestore';
+import { sendPasswordResetEmail, deleteUser } from 'firebase/auth';
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState('profile');
@@ -24,6 +24,10 @@ const Settings = () => {
   const fileInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
+
+  // Account Security States
+  const [deleteStep, setDeleteStep] = useState(0);
+  const [authLoading, setAuthLoading] = useState(false);
 
   const handleFileSelect = async (e) => {
     const file = e.target.files?.[0];
@@ -111,6 +115,49 @@ const Settings = () => {
       setUploading(false);
     }
   };
+  const handlePasswordReset = async () => {
+    if (!currentUser?.email) return;
+    setAuthLoading(true);
+    try {
+      await sendPasswordResetEmail(auth, currentUser.email);
+      setSaveMessage('Password reset email sent! Check your inbox.');
+      setTimeout(() => setSaveMessage(''), 5000);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to send password reset email.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteStep === 0) {
+      setDeleteStep(1);
+      return;
+    }
+    if (deleteStep === 1) {
+      setDeleteStep(2);
+      return;
+    }
+    
+    // Step 2 -> Actually delete
+    setAuthLoading(true);
+    try {
+      // 1. Delete user document from Firestore
+      await deleteDoc(doc(db, 'users', currentUser.uid));
+      // 2. Delete user from Firebase Auth
+      await deleteUser(auth.currentUser);
+      // Auth context will automatically kick them to login page
+    } catch (err) {
+      console.error(err);
+      // If it throws an error like 'requires-recent-login', alert the user
+      alert("Failed to delete account. You may need to log out and log back in to verify your identity before deleting your account.");
+      setDeleteStep(0);
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (currentUser) {
       setFormData({
@@ -352,8 +399,12 @@ const Settings = () => {
                   </div>
                   
                   <div className="pt-4">
-                    <button className="px-4 py-2 border border-[#E5E5E5] text-[#0A0A0A] text-sm font-semibold rounded-lg hover:bg-[#FAFAFA] transition-colors">
-                      Change Password
+                    <button 
+                      onClick={handlePasswordReset}
+                      disabled={authLoading}
+                      className="px-4 py-2 border border-[#E5E5E5] text-[#0A0A0A] text-sm font-semibold rounded-lg hover:bg-[#FAFAFA] transition-colors disabled:opacity-50"
+                    >
+                      {authLoading ? 'Sending...' : 'Send Password Reset Email'}
                     </button>
                   </div>
                 </div>
@@ -367,9 +418,42 @@ const Settings = () => {
                       <h4 className="font-bold text-red-800 text-sm">Delete Account</h4>
                       <p className="text-xs text-red-600 mt-1">Permanently remove your profile and all swap history. This action cannot be undone.</p>
                     </div>
-                    <button className="shrink-0 px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 transition-colors shadow-sm">
-                      Delete Account
-                    </button>
+                    
+                    {deleteStep === 0 && (
+                      <button 
+                        onClick={handleDeleteAccount}
+                        className="shrink-0 px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 transition-colors shadow-sm"
+                      >
+                        Delete Account
+                      </button>
+                    )}
+                    
+                    {deleteStep === 1 && (
+                      <button 
+                        onClick={handleDeleteAccount}
+                        className="shrink-0 px-4 py-2 bg-red-700 text-white text-sm font-bold rounded-lg animate-pulse shadow-sm"
+                      >
+                        Are you sure? Click to confirm.
+                      </button>
+                    )}
+
+                    {deleteStep === 2 && (
+                      <div className="flex items-center gap-2">
+                        <button 
+                          onClick={() => setDeleteStep(0)}
+                          className="shrink-0 px-4 py-2 bg-white text-gray-700 border border-gray-300 text-sm font-semibold rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button 
+                          onClick={handleDeleteAccount}
+                          disabled={authLoading}
+                          className="shrink-0 px-4 py-2 bg-red-800 text-white text-sm font-black rounded-lg hover:bg-red-900 transition-colors shadow-sm disabled:opacity-50"
+                        >
+                          {authLoading ? 'Deleting...' : 'PERMANENTLY DELETE'}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
