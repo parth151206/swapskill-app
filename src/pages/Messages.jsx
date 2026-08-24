@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Send, Paperclip, MoreVertical, CheckCircle2, Clock } from 'lucide-react';
+import { Search, Send, Paperclip, MoreVertical, CheckCircle2, Clock, MessageSquare } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { collection, query, where, onSnapshot, doc, getDoc, updateDoc, addDoc, serverTimestamp, orderBy } from 'firebase/firestore';
 import { db } from '../firebase';
