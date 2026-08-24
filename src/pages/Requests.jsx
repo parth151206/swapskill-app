@@ -25,6 +25,7 @@ const Requests = () => {
           id: d.id,
           ...req,
           user: {
+            id: req.fromUserId,
             name: user.name || 'Unknown',
             role: user.title || 'Member',
             avatar: user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'U')}&background=0A0A0A&color=fff&size=150`
@@ -47,6 +48,7 @@ const Requests = () => {
           id: d.id,
           ...req,
           user: {
+            id: req.toUserId,
             name: user.name || 'Unknown',
             role: user.title || 'Member',
             avatar: user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'U')}&background=0A0A0A&color=fff&size=150`
@@ -136,15 +138,15 @@ const Requests = () => {
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
                   <div className="flex items-center gap-4">
-                    <Link to="/profile">
+                    <Link to={`/profile?id=${request.user.id}`}>
                       <img 
                         src={request.user.avatar} 
                         alt={request.user.name} 
-                        className="w-16 h-16 rounded-full border border-[#E5E5E5] grayscale hover:grayscale-0 transition-all cursor-pointer" 
+                        className="w-16 h-16 rounded-full border border-[#E5E5E5] object-cover hover:opacity-90 transition-all cursor-pointer" 
                       />
                     </Link>
                     <div>
-                      <Link to="/profile" className="text-lg font-bold text-[#0A0A0A] hover:underline">
+                      <Link to={`/profile?id=${request.user.id}`} className="text-lg font-bold text-[#0A0A0A] hover:underline">
                         {request.user.name}
                       </Link>
                       <p className="text-sm text-[#737373]">{request.user.role}</p>
@@ -226,7 +228,7 @@ const Requests = () => {
               <h3 className="text-lg font-bold text-[#0A0A0A] mb-2">No {activeTab} requests.</h3>
               <p className="text-[#737373] text-sm mb-6">You don't have any {activeTab} swap requests at the moment.</p>
               {activeTab === 'received' ? (
-                <Link to="/profile" className="inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-lg text-sm font-semibold text-white bg-[#0A0A0A] hover:bg-[#262626] transition-colors">
+                <Link to="/settings" className="inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-lg text-sm font-semibold text-white bg-[#0A0A0A] hover:bg-[#262626] transition-colors">
                   Update Your Profile
                 </Link>
               ) : (

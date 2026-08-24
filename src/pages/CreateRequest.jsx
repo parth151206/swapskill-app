@@ -109,9 +109,9 @@ const CreateRequest = () => {
               {/* Header */}
               <div className="p-6 sm:p-8 border-b border-[#E5E5E5] bg-[#FAFAFA] text-center sm:text-left flex flex-col sm:flex-row items-center gap-6">
                 <img 
-                  src={targetUser.avatarUrl || "https://i.pravatar.cc/150?img=47"} 
+                  src={targetUser.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(targetUser.name || 'U')}&background=0A0A0A&color=fff&size=150`} 
                   alt={targetUser.name} 
-                  className="w-20 h-20 rounded-full border border-[#E5E5E5] grayscale shadow-sm object-cover"
+                  className="w-20 h-20 rounded-full border border-[#E5E5E5] shadow-sm object-cover"
                 />
                 <div>
                   <h1 className="text-2xl font-bold tracking-tight text-[#0A0A0A]">Propose a Swap</h1>
