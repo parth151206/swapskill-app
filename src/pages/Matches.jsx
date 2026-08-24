@@ -194,7 +194,7 @@ const Matches = () => {
                     <div className="flex items-center gap-2 shrink-0">
                       {activeTab === 'active' ? (
                         <>
-                          <Link to="/messages" className="inline-flex justify-center items-center px-3 py-2 border border-[#E5E5E5] rounded-lg text-sm font-semibold text-[#0A0A0A] bg-white hover:bg-[#FAFAFA] transition-colors">
+                          <Link to={`/messages?id=${match.id}`} className="inline-flex justify-center items-center px-3 py-2 border border-[#E5E5E5] rounded-lg text-sm font-semibold text-[#0A0A0A] bg-white hover:bg-[#FAFAFA] transition-colors">
                             <MessageSquare className="w-4 h-4 sm:mr-2" />
                             <span className="hidden sm:inline">Message</span>
                           </Link>
@@ -208,7 +208,7 @@ const Matches = () => {
                         </>
                       ) : (
                         <>
-                          <Link to="/messages" className="inline-flex justify-center items-center px-3 py-2 border border-[#E5E5E5] rounded-lg text-sm font-semibold text-[#0A0A0A] bg-white hover:bg-[#FAFAFA] transition-colors">
+                          <Link to={`/messages?id=${match.id}`} className="inline-flex justify-center items-center px-3 py-2 border border-[#E5E5E5] rounded-lg text-sm font-semibold text-[#0A0A0A] bg-white hover:bg-[#FAFAFA] transition-colors">
                             <MessageSquare className="w-4 h-4 sm:mr-2" />
                             <span className="hidden sm:inline">Message</span>
                           </Link>

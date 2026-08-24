@@ -1,14 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, Send, Paperclip, MoreVertical, CheckCircle2, Clock, MessageSquare } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { collection, query, where, onSnapshot, doc, getDoc, updateDoc, addDoc, serverTimestamp, orderBy } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 
 const Messages = () => {
+  const [searchParams] = useSearchParams();
+  const initialChatId = searchParams.get('id');
+
   const { currentUser } = useAuth();
   const [conversations, setConversations] = useState([]);
-  const [activeChatId, setActiveChatId] = useState(null);
+  const [activeChatId, setActiveChatId] = useState(initialChatId || null);
   const [messages, setMessages] = useState([]);
   const [newMessageText, setNewMessageText] = useState('');
   const messagesEndRef = useRef(null);
