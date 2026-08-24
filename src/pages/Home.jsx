@@ -1,8 +1,18 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, BookOpen, Users, Repeat, CheckCircle, Shield, Zap } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 const Home = () => {
+  const { currentUser } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (currentUser) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [currentUser, navigate]);
+
   return (
     <div className="flex flex-col min-h-screen bg-[#FAFAFA] text-[#0A0A0A] selection:bg-[#10B981] selection:text-white">
       
