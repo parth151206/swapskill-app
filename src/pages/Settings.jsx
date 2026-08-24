@@ -399,13 +399,19 @@ const Settings = () => {
                   </div>
                   
                   <div className="pt-4">
-                    <button 
-                      onClick={handlePasswordReset}
-                      disabled={authLoading}
-                      className="px-4 py-2 border border-[#E5E5E5] text-[#0A0A0A] text-sm font-semibold rounded-lg hover:bg-[#FAFAFA] transition-colors disabled:opacity-50"
-                    >
-                      {authLoading ? 'Sending...' : 'Send Password Reset Email'}
-                    </button>
+                    {currentUser?.providerData?.[0]?.providerId === 'google.com' ? (
+                      <p className="text-sm text-[#737373] bg-[#FAFAFA] p-3 rounded-lg border border-[#E5E5E5]">
+                        You signed in using Google. Your password is managed securely by Google.
+                      </p>
+                    ) : (
+                      <button 
+                        onClick={handlePasswordReset}
+                        disabled={authLoading}
+                        className="px-4 py-2 border border-[#E5E5E5] text-[#0A0A0A] text-sm font-semibold rounded-lg hover:bg-[#FAFAFA] transition-colors disabled:opacity-50"
+                      >
+                        {authLoading ? 'Sending...' : 'Send Password Reset Email'}
+                      </button>
+                    )}
                   </div>
                 </div>
 
