@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, MessageSquare, Calendar, Star, MoreVertical, Clock } from 'lucide-react';
+import { Search, MessageSquare, Calendar, Star, MoreVertical, Clock, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -10,15 +10,21 @@ const Matches = () => {
   const { currentUser } = useAuth();
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    const fetchMatches = async () => {
-      if (!currentUser) return;
-      try {
-        const q = query(collection(db, 'chats'), where('participants', 'array-contains', currentUser.uid));
-        const snapshot = await getDocs(q);
-        
+    if (!currentUser) return;
+    
+    setLoading(true);
+    let unsubUserArray = [];
+
+    const fetchMatchesRealtime = async () => {
+      const { onSnapshot } = await import('firebase/firestore');
+      const q = query(collection(db, 'chats'), where('participants', 'array-contains', currentUser.uid));
+      
+      const unsubChats = onSnapshot(q, async (snapshot) => {
         const fetchedMatches = [];
+        
         for (const chatDoc of snapshot.docs) {
           const chatData = chatDoc.data();
           const otherUserId = chatData.participants.find(id => id !== currentUser.uid);
@@ -35,7 +41,7 @@ const Matches = () => {
                 role: userData.title || 'Member',
                 company: 'Member',
                 avatar: userData.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.name || 'U')}&background=0A0A0A&color=fff`,
-                status: 'active',
+                status: chatData.status || 'active',
                 topic: chatData.topic || 'Skill Swap',
                 nextSession: 'TBD',
                 hoursExchanged: 0,
@@ -44,16 +50,39 @@ const Matches = () => {
           }
         }
         setMatches(fetchedMatches);
-      } catch (err) {
-        console.error("Error fetching matches:", err);
-      } finally {
         setLoading(false);
-      }
+      }, (error) => {
+        console.error("Error listening to matches:", error);
+        setLoading(false);
+      });
+
+      unsubUserArray.push(unsubChats);
     };
-    fetchMatches();
+
+    fetchMatchesRealtime();
+
+    return () => {
+      unsubUserArray.forEach(unsub => unsub());
+    };
   }, [currentUser]);
 
-  const filteredMatches = matches.filter(m => m.status === activeTab);
+  const handleCompleteMatch = async (chatId) => {
+    try {
+      const { updateDoc } = await import('firebase/firestore');
+      await updateDoc(doc(db, 'chats', chatId), { status: 'completed' });
+      // Update local state
+      setMatches(prev => prev.map(m => m.id === chatId ? { ...m, status: 'completed' } : m));
+    } catch (err) {
+      console.error("Error completing match:", err);
+    }
+  };
+
+  const filteredMatches = matches.filter(m => {
+    const statusMatch = m.status === activeTab;
+    const searchMatch = m.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                        m.topic.toLowerCase().includes(searchTerm.toLowerCase());
+    return statusMatch && searchMatch;
+  });
 
   if (loading) {
     return (
@@ -111,6 +140,8 @@ const Matches = () => {
             <input
               type="text"
               placeholder="Search matches..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="block w-full sm:w-64 pl-10 pr-3 py-2 border border-[#E5E5E5] rounded-lg text-[#0A0A0A] placeholder-[#737373] focus:outline-none focus:ring-1 focus:ring-[#0A0A0A] focus:border-[#0A0A0A] sm:text-sm bg-white"
             />
           </div>
@@ -130,14 +161,14 @@ const Matches = () => {
                         <img 
                           src={match.avatar} 
                           alt={match.name} 
-                          className="w-14 h-14 rounded-full border border-[#E5E5E5] grayscale hover:grayscale-0 transition-all cursor-pointer" 
+                          className="w-14 h-14 rounded-full border border-[#E5E5E5] object-cover hover:opacity-90 transition-all cursor-pointer" 
                         />
                       </Link>
                       <div>
                         <Link to={`/profile?id=${match.uid}`} className="text-base font-bold text-[#0A0A0A] hover:underline">
                           {match.name}
                         </Link>
-                        <p className="text-sm text-[#737373]">{match.role} @ {match.company}</p>
+                        <p className="text-sm text-[#737373]">{match.role}</p>
                         <div className="mt-1 flex items-center gap-2 text-xs font-medium text-[#737373]">
                           <span className="inline-flex items-center px-2 py-0.5 rounded bg-[#FAFAFA] border border-[#E5E5E5]">
                             {match.hoursExchanged} hrs exchanged
@@ -162,10 +193,19 @@ const Matches = () => {
                     {/* Actions */}
                     <div className="flex items-center gap-2 shrink-0">
                       {activeTab === 'active' ? (
+                        <>
                           <Link to="/messages" className="inline-flex justify-center items-center px-3 py-2 border border-[#E5E5E5] rounded-lg text-sm font-semibold text-[#0A0A0A] bg-white hover:bg-[#FAFAFA] transition-colors">
                             <MessageSquare className="w-4 h-4 sm:mr-2" />
                             <span className="hidden sm:inline">Message</span>
                           </Link>
+                          <button 
+                            onClick={() => handleCompleteMatch(match.id)}
+                            className="inline-flex justify-center items-center px-3 py-2 border border-transparent rounded-lg text-sm font-semibold text-white bg-[#0A0A0A] hover:bg-[#262626] transition-colors"
+                          >
+                            <CheckCircle2 className="w-4 h-4 sm:mr-2" />
+                            <span className="hidden sm:inline">Complete</span>
+                          </button>
+                        </>
                       ) : (
                         <>
                           <Link to="/messages" className="inline-flex justify-center items-center px-3 py-2 border border-[#E5E5E5] rounded-lg text-sm font-semibold text-[#0A0A0A] bg-white hover:bg-[#FAFAFA] transition-colors">
@@ -178,10 +218,6 @@ const Matches = () => {
                           </button>
                         </>
                       )}
-                      
-                      <button className="p-2 text-[#737373] hover:text-[#0A0A0A] hover:bg-[#E5E5E5] rounded-lg transition-colors border border-transparent">
-                        <MoreVertical className="w-5 h-5" />
-                      </button>
                     </div>
 
                   </div>
