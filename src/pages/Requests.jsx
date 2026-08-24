@@ -73,7 +73,8 @@ const Requests = () => {
         await addDoc(collection(db, 'chats'), {
           participants: [request.fromUserId, request.toUserId],
           updatedAt: serverTimestamp(),
-          topic: `${request.offering} ↔ ${request.seeking}`
+          topic: `${request.offering} ↔ ${request.seeking}`,
+          status: 'active'
         });
       }
     } catch (err) {
