@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Filter, Star, MapPin, Briefcase, Clock, X, CheckCircle, ArrowRight } from 'lucide-react';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -15,24 +15,23 @@ const Explore = () => {
   
   const { currentUser } = useAuth();
 
-  // Fetch real users from Firestore
+  // Fetch real users from Firestore in real-time
   useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const querySnapshot = await getDocs(collection(db, 'users'));
-        const usersList = querySnapshot.docs
-          .map(doc => ({ id: doc.id, ...doc.data() }))
-          // Don't show the currently logged in user to themselves
-          .filter(u => u.id !== currentUser?.uid);
-        setUsers(usersList);
-      } catch (error) {
-        console.error("Error fetching users:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    if (!currentUser) return;
+
+    const unsub = onSnapshot(collection(db, 'users'), (snapshot) => {
+      const usersList = snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        // Don't show the currently logged in user to themselves
+        .filter(u => u.id !== currentUser.uid);
+      setUsers(usersList);
+      setIsLoading(false);
+    }, (error) => {
+      console.error("Error fetching users:", error);
+      setIsLoading(false);
+    });
     
-    fetchUsers();
+    return () => unsub();
   }, [currentUser]);
 
   // Filtering Logic
