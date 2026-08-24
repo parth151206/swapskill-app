@@ -14,7 +14,9 @@ const Settings = () => {
     title: '',
     bio: '',
     canTeach: '',
-    wantToLearn: ''
+    wantToLearn: '',
+    experience: 'Intermediate',
+    availability: 'Flexible'
   });
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
@@ -116,7 +118,9 @@ const Settings = () => {
         title: currentUser.title || '',
         bio: currentUser.bio || '',
         canTeach: currentUser.canTeach ? currentUser.canTeach.join(', ') : '',
-        wantToLearn: currentUser.wantToLearn ? currentUser.wantToLearn.join(', ') : ''
+        wantToLearn: currentUser.wantToLearn ? currentUser.wantToLearn.join(', ') : '',
+        experience: currentUser.experience || 'Intermediate',
+        availability: currentUser.availability || 'Flexible'
       });
     }
   }, [currentUser]);
@@ -138,6 +142,8 @@ const Settings = () => {
         bio: formData.bio,
         canTeach: formData.canTeach.split(',').map(s => s.trim()).filter(Boolean),
         wantToLearn: formData.wantToLearn.split(',').map(s => s.trim()).filter(Boolean),
+        experience: formData.experience,
+        availability: formData.availability,
       }, { merge: true });
       setSaveMessage('Profile saved successfully!');
       setTimeout(() => setSaveMessage(''), 3000);
@@ -308,6 +314,27 @@ const Settings = () => {
                   <div>
                     <label className="block text-sm font-bold text-[#0A0A0A] mb-2">I Want To Learn (Comma separated)</label>
                     <input type="text" name="wantToLearn" value={formData.wantToLearn} onChange={handleChange} className="block w-full py-2.5 px-3 border border-[#E5E5E5] rounded-lg text-[#0A0A0A] bg-[#FAFAFA] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#0A0A0A] focus:border-[#0A0A0A] sm:text-sm transition-colors" />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-bold text-[#0A0A0A] mb-2">Experience Level</label>
+                      <select name="experience" value={formData.experience} onChange={handleChange} className="block w-full py-2.5 px-3 border border-[#E5E5E5] rounded-lg text-[#0A0A0A] bg-[#FAFAFA] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#0A0A0A] focus:border-[#0A0A0A] sm:text-sm transition-colors">
+                        <option value="Beginner">Beginner</option>
+                        <option value="Intermediate">Intermediate</option>
+                        <option value="Expert">Expert</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-bold text-[#0A0A0A] mb-2">Availability</label>
+                      <select name="availability" value={formData.availability} onChange={handleChange} className="block w-full py-2.5 px-3 border border-[#E5E5E5] rounded-lg text-[#0A0A0A] bg-[#FAFAFA] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#0A0A0A] focus:border-[#0A0A0A] sm:text-sm transition-colors">
+                        <option value="Flexible">Flexible</option>
+                        <option value="Weekdays">Weekdays</option>
+                        <option value="Evenings">Evenings</option>
+                        <option value="Weekends">Weekends</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
               </div>

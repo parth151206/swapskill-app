@@ -205,7 +205,7 @@ const Profile = () => {
                       <div className="flex flex-wrap gap-2">
                         {userData.wantToLearn && userData.wantToLearn.length > 0 ? (
                           userData.wantToLearn.map((skill, index) => (
-                            <span key={index} className="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-semibold bg-white text-[#737373] border border-[#E5E5E5]">
+                            <span key={index} className="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-semibold bg-white text-[#737373] border border-[#E5E5E5] border-dashed">
                               {skill}
                             </span>
                           ))
@@ -215,6 +215,19 @@ const Profile = () => {
                       </div>
                     </div>
                   </section>
+
+                  {/* Additional Details */}
+                  <section className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4 border-t border-[#E5E5E5]">
+                    <div>
+                      <h4 className="text-sm font-bold text-[#737373] uppercase tracking-wider mb-2">Experience Level</h4>
+                      <p className="text-base font-semibold text-[#0A0A0A]">{userData.experience || 'Not specified'}</p>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-[#737373] uppercase tracking-wider mb-2">Availability</h4>
+                      <p className="text-base font-semibold text-[#0A0A0A]">{userData.availability || 'Not specified'}</p>
+                    </div>
+                  </section>
+                  
                 </div>
               )}
             </div>

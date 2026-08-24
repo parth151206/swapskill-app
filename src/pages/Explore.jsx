@@ -45,9 +45,15 @@ const Explore = () => {
       safeTeaches.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase())) ||
       safeWants.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase()));
       
-    // Simplified filters for now, assuming all experience/availability matches since we didn't add those to profile yet
-    const matchesExperience = selectedExperience === 'All' || true;
-    const matchesAvailability = selectedAvailability === 'All' || true;
+    // Apply Experience Filter
+    const matchesExperience = 
+      selectedExperience === 'All' || 
+      (user.experience && user.experience === selectedExperience);
+
+    // Apply Availability Filter
+    const matchesAvailability = 
+      selectedAvailability === 'All' || 
+      (user.availability && user.availability === selectedAvailability);
     
     return matchesSearch && matchesExperience && matchesAvailability;
   });
