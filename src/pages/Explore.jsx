@@ -225,7 +225,7 @@ const Explore = () => {
                       {/* Profile Info */}
                       <div className="flex items-start gap-5">
                         <div className="relative">
-                          <img src={user.avatarUrl || "https://i.pravatar.cc/150?img=47"} alt={user.name} className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border border-[#E5E5E5] grayscale group-hover:grayscale-0 transition-all duration-500" />
+                          <img src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'U')}&background=0A0A0A&color=fff&size=150`} alt={user.name} className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border border-[#E5E5E5] grayscale group-hover:grayscale-0 transition-all duration-500" />
                           <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5">
                             <CheckCircle className="w-5 h-5 text-[#10B981]" />
                           </div>
@@ -253,7 +253,7 @@ const Explore = () => {
                         <Link to={`/create-request?target=${user.id}`} className="w-full inline-flex justify-center items-center px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#0A0A0A] hover:bg-[#262626] transition-colors">
                           Request Swap
                         </Link>
-                        <Link to="/profile" className="w-full inline-flex justify-center items-center px-4 py-2.5 border border-[#E5E5E5] rounded-lg text-sm font-semibold text-[#0A0A0A] bg-white hover:bg-[#FAFAFA] transition-colors group/btn">
+                        <Link to={`/profile?id=${user.id}`} className="w-full inline-flex justify-center items-center px-4 py-2.5 border border-[#E5E5E5] rounded-lg text-sm font-semibold text-[#0A0A0A] bg-white hover:bg-[#FAFAFA] transition-colors group/btn">
                           View Profile <ArrowRight className="ml-1.5 w-3.5 h-3.5 text-[#737373] group-hover/btn:translate-x-0.5 transition-transform" />
                         </Link>
                       </div>

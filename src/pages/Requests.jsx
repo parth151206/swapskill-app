@@ -27,7 +27,7 @@ const Requests = () => {
           user: {
             name: user.name || 'Unknown',
             role: user.title || 'Member',
-            avatar: user.avatarUrl || 'https://i.pravatar.cc/150?img=47'
+            avatar: user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'U')}&background=0A0A0A&color=fff&size=150`
           },
           timeAgo: 'Recently'
         });
@@ -49,7 +49,7 @@ const Requests = () => {
           user: {
             name: user.name || 'Unknown',
             role: user.title || 'Member',
-            avatar: user.avatarUrl || 'https://i.pravatar.cc/150?img=47'
+            avatar: user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'U')}&background=0A0A0A&color=fff&size=150`
           },
           timeAgo: 'Recently'
         });
