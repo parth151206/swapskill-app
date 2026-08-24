@@ -13,6 +13,7 @@ const Profile = () => {
   
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState(null);
 
   // If there is an ID in the URL, fetch that user. Otherwise, fetch the logged-in user.
   const profileUid = targetId || currentUser?.uid;
@@ -20,14 +21,20 @@ const Profile = () => {
 
   useEffect(() => {
     const fetchUser = async () => {
-      if (!profileUid) return;
+      if (!profileUid) {
+        setLoading(false);
+        return;
+      }
       try {
         const userDoc = await getDoc(doc(db, 'users', profileUid));
         if (userDoc.exists()) {
           setUserData(userDoc.data());
+        } else {
+          setErrorMsg("User not found in database.");
         }
       } catch (err) {
         console.error("Error fetching profile:", err);
+        setErrorMsg(`Access denied or error: ${err.message}`);
       } finally {
         setLoading(false);
       }
@@ -43,10 +50,11 @@ const Profile = () => {
     );
   }
 
-  if (!userData) {
+  if (errorMsg || !userData) {
     return (
-      <div className="min-h-screen bg-[#FAFAFA] flex items-center justify-center">
-        <div className="text-[#0A0A0A] text-xl font-bold">User not found</div>
+      <div className="min-h-screen bg-[#FAFAFA] flex flex-col items-center justify-center">
+        <div className="text-[#0A0A0A] text-xl font-bold mb-2">Oops!</div>
+        <div className="text-red-500 text-sm font-medium">{errorMsg || "User not found"}</div>
       </div>
     );
   }
