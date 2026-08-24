@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Infinity as InfinityIcon, ArrowRight, Globe, CheckCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -14,7 +14,13 @@ const Register = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
-  const { signup } = useAuth();
+  const { signup, currentUser } = useAuth();
+
+  useEffect(() => {
+    if (currentUser) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [currentUser, navigate]);
 
   const handleRegister = async (e) => {
     e.preventDefault();
