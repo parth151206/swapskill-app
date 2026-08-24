@@ -1,62 +1,88 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Bell, Repeat, MessageSquare, Star, Settings, CheckCircle2 } from 'lucide-react';
-
+import { collection, query, where, onSnapshot, getDoc, doc } from 'firebase/firestore';
+import { db } from '../firebase';
+import { useAuth } from '../contexts/AuthContext';
 const Notifications = () => {
+  const { currentUser } = useAuth();
   const [filter, setFilter] = useState('all');
+  const [notifications, setNotifications] = useState([]);
 
-  const notifications = [
-    {
-      id: 1,
-      type: 'swap_accepted',
-      unread: true,
-      user: { name: 'David K.', avatar: 'https://i.pravatar.cc/150?img=33' },
-      content: 'accepted your swap request for Advanced Figma Prototyping.',
-      timeAgo: '10 minutes ago',
-      icon: Repeat,
-      action: { label: 'View Match', link: '/matches' }
-    },
-    {
-      id: 2,
-      type: 'message',
-      unread: true,
-      user: { name: 'Elena R.', avatar: 'https://i.pravatar.cc/150?img=44' },
-      content: 'sent you a message: "Are we still on for our session tomorrow?"',
-      timeAgo: '1 hour ago',
-      icon: MessageSquare,
-      action: { label: 'Reply', link: '/matches' }
-    },
-    {
-      id: 3,
-      type: 'reminder',
-      unread: false,
-      user: { name: 'System', avatar: null },
-      content: 'Reminder: Send your architecture diagrams to Sophie W. before your swap.',
-      timeAgo: '2 hours ago',
-      icon: MessageSquare,
-      action: { label: 'Send Resources', link: '/matches' }
-    },
-    {
-      id: 4,
-      type: 'review',
-      unread: false,
-      user: { name: 'Marcus J.', avatar: 'https://i.pravatar.cc/150?img=55' },
-      content: 'left you a 5-star review: "Extremely professional..."',
-      timeAgo: '1 day ago',
-      icon: Star,
-      action: { label: 'Read Review', link: '/profile' }
-    },
-    {
-      id: 5,
-      type: 'system',
-      unread: false,
-      user: { name: 'SwapSkill Admin', avatar: null },
-      content: 'Welcome to the network! Complete your profile to get matched.',
-      timeAgo: '3 days ago',
-      icon: Settings,
-      action: { label: 'Edit Profile', link: '/profile' }
-    }
-  ];
+  useEffect(() => {
+    if (!currentUser) return;
+
+    // 1. Fetch pending requests to me
+    const qPending = query(
+      collection(db, 'requests'),
+      where('toUserId', '==', currentUser.uid),
+      where('status', '==', 'pending')
+    );
+
+    // 2. Fetch accepted requests from me
+    const qAccepted = query(
+      collection(db, 'requests'),
+      where('fromUserId', '==', currentUser.uid),
+      where('status', '==', 'accepted')
+    );
+
+    const unsubPending = onSnapshot(qPending, async (snapshot) => {
+      const pendingData = await Promise.all(snapshot.docs.map(async (d) => {
+        const req = d.data();
+        const userDoc = await getDoc(doc(db, 'users', req.fromUserId));
+        const userData = userDoc.exists() ? userDoc.data() : {};
+        return {
+          id: d.id,
+          type: 'pending_request',
+          unread: true,
+          user: { 
+            name: userData.name || 'Unknown', 
+            avatar: userData.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.name || 'U')}&background=0A0A0A&color=fff&size=150` 
+          },
+          content: `wants to swap skills! They are offering ${req.offering}.`,
+          timeAgo: 'Recently',
+          icon: Repeat,
+          action: { label: 'View Request', link: '/dashboard' }
+        };
+      }));
+      
+      setNotifications(prev => {
+        const filtered = prev.filter(n => n.type !== 'pending_request');
+        return [...filtered, ...pendingData];
+      });
+    });
+
+    const unsubAccepted = onSnapshot(qAccepted, async (snapshot) => {
+      const acceptedData = await Promise.all(snapshot.docs.map(async (d) => {
+        const req = d.data();
+        const userDoc = await getDoc(doc(db, 'users', req.toUserId));
+        const userData = userDoc.exists() ? userDoc.data() : {};
+        return {
+          id: d.id,
+          type: 'accepted_request',
+          unread: false,
+          user: { 
+            name: userData.name || 'Unknown', 
+            avatar: userData.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.name || 'U')}&background=0A0A0A&color=fff&size=150` 
+          },
+          content: `accepted your swap request for ${req.seeking}!`,
+          timeAgo: 'Recently',
+          icon: CheckCircle2,
+          action: { label: 'View Match', link: '/matches' }
+        };
+      }));
+      
+      setNotifications(prev => {
+        const filtered = prev.filter(n => n.type !== 'accepted_request');
+        return [...filtered, ...acceptedData];
+      });
+    });
+
+    return () => {
+      unsubPending();
+      unsubAccepted();
+    };
+  }, [currentUser]);
 
   const filteredNotifications = notifications.filter(n => {
     if (filter === 'unread') return n.unread;
@@ -121,7 +147,7 @@ const Notifications = () => {
                   {/* Left Icon/Avatar */}
                   <div className="relative shrink-0">
                     {notif.user.avatar ? (
-                      <img src={notif.user.avatar} alt={notif.user.name} className="w-12 h-12 rounded-full border border-[#E5E5E5] grayscale" />
+                      <img src={notif.user.avatar} alt={notif.user.name} className="w-12 h-12 rounded-full border border-[#E5E5E5] object-cover" />
                     ) : (
                       <div className="w-12 h-12 rounded-full bg-[#FAFAFA] border border-[#E5E5E5] flex items-center justify-center">
                         <Bell className="w-5 h-5 text-[#0A0A0A]" />
