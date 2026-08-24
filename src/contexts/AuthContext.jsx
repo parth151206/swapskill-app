@@ -56,11 +56,31 @@ export const AuthProvider = ({ children }) => {
     const authUnsub = onAuthStateChanged(auth, async (user) => {
       if (user) {
         // Listen to the user document in Firestore in real-time
-        userUnsub = onSnapshot(doc(db, 'users', user.uid), (userDoc) => {
+        userUnsub = onSnapshot(doc(db, 'users', user.uid), async (userDoc) => {
           if (userDoc.exists()) {
             setCurrentUser({ ...user, ...userDoc.data() });
           } else {
-            setCurrentUser(user);
+            // Self-healing: if the user is authenticated but has no Firestore document, create one
+            const fallbackData = {
+              uid: user.uid,
+              name: user.displayName || 'New User',
+              email: user.email,
+              title: 'Member',
+              createdAt: new Date().toISOString(),
+              canTeach: [],
+              wantToLearn: [],
+              bio: '',
+              avatarUrl: ''
+            };
+            
+            try {
+              const { setDoc } = await import('firebase/firestore');
+              await setDoc(doc(db, 'users', user.uid), fallbackData, { merge: true });
+              setCurrentUser({ ...user, ...fallbackData });
+            } catch (err) {
+              console.error("Error creating fallback user document:", err);
+              setCurrentUser(user);
+            }
           }
           setLoading(false);
         }, (error) => {

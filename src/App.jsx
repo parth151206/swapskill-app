@@ -19,7 +19,18 @@ import CreateRequest from './pages/CreateRequest';
 
 // Authenticated Mock Routes
 
+import { useAuth } from './contexts/AuthContext';
+import { Navigate } from 'react-router-dom';
+
 const NotFound = () => <div className="p-8 text-center min-h-[60vh]"><h1 className="text-3xl font-bold">404 - Skill Not Found</h1></div>;
+
+const ProtectedRoute = ({ children }) => {
+  const { currentUser } = useAuth();
+  if (!currentUser) {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
+};
 
 function App() {
   return (
@@ -37,14 +48,14 @@ function App() {
             <Route path="/register" element={<Register />} />
             
             {/* User Routes */}
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/matches" element={<Matches />} />
-            <Route path="/requests" element={<Requests />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/notifications" element={<Notifications />} />
-            <Route path="/messages" element={<Messages />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/create-request" element={<CreateRequest />} />
+            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/matches" element={<ProtectedRoute><Matches /></ProtectedRoute>} />
+            <Route path="/requests" element={<ProtectedRoute><Requests /></ProtectedRoute>} />
+            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+            <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+            <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+            <Route path="/create-request" element={<ProtectedRoute><CreateRequest /></ProtectedRoute>} />
             
             <Route path="*" element={<NotFound />} />
           </Routes>
