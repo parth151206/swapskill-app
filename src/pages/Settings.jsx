@@ -115,16 +115,17 @@ const Settings = () => {
       setUploading(false);
     }
   };
+  const [passwordResetSent, setPasswordResetSent] = useState(false);
   const handlePasswordReset = async () => {
     if (!currentUser?.email) return;
     setAuthLoading(true);
+    setPasswordResetSent(false);
     try {
       await sendPasswordResetEmail(auth, currentUser.email);
-      setSaveMessage('Password reset email sent! Check your inbox.');
-      setTimeout(() => setSaveMessage(''), 5000);
+      setPasswordResetSent(true);
     } catch (err) {
       console.error(err);
-      alert('Failed to send password reset email.');
+      alert('Failed to send password reset email. Please try again.');
     } finally {
       setAuthLoading(false);
     }
@@ -404,13 +405,20 @@ const Settings = () => {
                         You signed in using Google. Your password is managed securely by Google.
                       </p>
                     ) : (
-                      <button 
-                        onClick={handlePasswordReset}
-                        disabled={authLoading}
-                        className="px-4 py-2 border border-[#E5E5E5] text-[#0A0A0A] text-sm font-semibold rounded-lg hover:bg-[#FAFAFA] transition-colors disabled:opacity-50"
-                      >
-                        {authLoading ? 'Sending...' : 'Send Password Reset Email'}
-                      </button>
+                      <div>
+                        <button 
+                          onClick={handlePasswordReset}
+                          disabled={authLoading}
+                          className="px-4 py-2 border border-[#E5E5E5] text-[#0A0A0A] text-sm font-semibold rounded-lg hover:bg-[#FAFAFA] transition-colors disabled:opacity-50"
+                        >
+                          {authLoading ? 'Sending...' : 'Send Password Reset Email'}
+                        </button>
+                        {passwordResetSent && (
+                          <p className="mt-3 text-sm font-bold text-[#10B981]">
+                            Email sent! Please check your Spam / Junk folder.
+                          </p>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
